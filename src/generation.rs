@@ -31,27 +31,35 @@ pub struct TokenManager {
 
 impl TokenManager {
     pub fn new() -> Self {
-        let env_tokens = std::env::var("OLLAMA_API_KEYS").unwrap_or_default();
         let mut states = Vec::new();
 
-        if env_tokens.trim().is_empty() {
+        // Сканируем все переменные окружения
+        for (key, value) in std::env::vars() {
+            // Берем только те, что начинаются с OLLAMA_API_KEY и не пустые
+            if key.starts_with("OLLAMA_API_KEY") && !value.trim().is_empty() {
+                states.push(TokenState {
+                    token: value.trim().to_string(),
+                    is_busy: false,
+                });
+            }
+        }
+
+        if states.is_empty() {
+            // Если в .env вообще нет таких ключей, генерируем 100 тестовых
             for i in 1..=100 {
                 states.push(TokenState {
                     token: format!("dummy_test_token_{}", i),
                     is_busy: false,
                 });
             }
-            println!("⚠️ OLLAMA_API_KEYS не найден. Используется 100 тестовых токенов.");
+            println!("⚠️ Токены OLLAMA_API_KEY_* не найдены в .env. Используется 100 тестовых.");
         } else {
-            for token in env_tokens.split(',') {
-                let trimmed = token.trim().to_string();
-                if !trimmed.is_empty() {
-                    states.push(TokenState { token: trimmed, is_busy: false });
-                }
-            }
-            println!("✅ Загружено {} токенов из .env", states.len());
+            println!("✅ Загружено {} отдельных токенов из .env", states.len());
         }
-        Self { tokens: Arc::new(Mutex::new(states)) }
+
+        Self {
+            tokens: Arc::new(Mutex::new(states)),
+        }
     }
 
     pub fn acquire_token(&self) -> Option<TokenGuard> {
