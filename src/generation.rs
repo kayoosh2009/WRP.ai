@@ -2,8 +2,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-// --- Структуры для Ollama API ---
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub role: String,
@@ -22,8 +20,6 @@ struct OllamaResponse {
     message: Message,
 }
 
-// --- Менеджер токенов с паттерном Guard ---
-
 pub struct TokenState {
     pub token: String,
     pub is_busy: bool,
@@ -35,12 +31,10 @@ pub struct TokenManager {
 
 impl TokenManager {
     pub fn new() -> Self {
-        // Пытаемся загрузить токены из .env (через запятую: TOKEN1,TOKEN2,...)
         let env_tokens = std::env::var("OLLAMA_API_KEYS").unwrap_or_default();
         let mut states = Vec::new();
 
         if env_tokens.trim().is_empty() {
-            // Если в .env пусто, генерируем 100 тестовых токенов, как ты просил
             for i in 1..=100 {
                 states.push(TokenState {
                     token: format!("dummy_test_token_{}", i),
@@ -66,8 +60,6 @@ impl TokenManager {
         }
     }
 
-    /// Пытается получить свободный токен. Возвращает Guard, который автоматически 
-    /// освободит токен при удалении (выходе из области видимости или панике).
     pub fn acquire_token(&self) -> Option<TokenGuard> {
         let mut tokens = self.tokens.lock().unwrap();
         for (i, state) in tokens.iter_mut().enumerate() {
@@ -80,14 +72,13 @@ impl TokenManager {
                 });
             }
         }
-        None // Все токены заняты или пусты
+        None 
     }
 }
 
-/// Гард, который автоматически освобождает токен при уничтожении (Drop)
 pub struct TokenGuard {
     index: usize,
-    #[allow(dead_code)] // Храним на случай отладки
+    #[allow(dead_code)] 
     token: String,
     manager: Arc<Mutex<Vec<TokenState>>>,
 }
@@ -97,17 +88,14 @@ impl Drop for TokenGuard {
         if let Ok(mut tokens) = self.manager.lock() {
             if let Some(state) = tokens.get_mut(self.index) {
                 state.is_busy = false;
-                // println!("🔓 Токен #{} освобожден", self.index); // Можно раскомментировать для отладки
             }
         }
     }
 }
 
-// --- Основная функция генерации ---
-
 pub struct GenerationSettings {
     pub char_prompt: String,
-    pub rules: String, // "будь легким, не пиши много, действия после >>"
+    pub rules: String, 
 }
 
 pub async fn generate_rp_response(
@@ -118,18 +106,14 @@ pub async fn generate_rp_response(
     settings: &GenerationSettings,
 ) -> Result<String, Box<dyn std::error::Error>> {
     
-    // 1. Пытаемся получить свободный токен
     let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты. Попробуйте позже.")?;
-    // Пока _guard существует, токен заблокирован. Он освободится в конце функции.
 
-    // 2. Формируем системное сообщение, объединяя промпт персонажа и настройки
     let system_content = format!(
         "РОЛЬ: {}\n\nПРАВИЛА ОТВЕТА: {}\n\nОтвечай строго на русском языке, сохраняя атмосферу.",
         settings.char_prompt,
         settings.rules
     );
 
-    // 3. Собираем полный массив сообщений (Система + История + Новое сообщение пользователя)
     let mut messages = vec![Message {
         role: "system".to_string(),
         content: system_content,
@@ -142,14 +126,12 @@ pub async fn generate_rp_response(
         content: user_input.to_string(),
     });
 
-    // 4. Формируем запрос к Ollama Cloud
     let request_payload = OllamaRequest {
-        model: "gemma4:cloud".to_string(), // Твоя целевая модель
+        model: "gemma4:cloud".to_string(), 
         messages,
-        stream: false, // Пока делаем синхронный ответ внутри асинхронной функции для простоты
+        stream: false, 
     };
 
-    // 5. Выполняем HTTP запрос
     let response = client
         .post("https://ollama.com/api/chat")
         .header("Authorization", format!("Bearer {}", _guard.token))
@@ -163,16 +145,13 @@ pub async fn generate_rp_response(
         return Err(format!("Ollama API вернул ошибку: {}", err_text).into());
     }
 
-    // 6. Парсим ответ
     let ollama_response: OllamaResponse = response.json().await?;
     
     Ok(ollama_response.message.content)
 }
 
-// --- Пример использования (можно вынести в main.rs) ---
 #[tokio::main]
 async fn main() {
-    // Загружаем переменные из файла .env
     dotenvy::dotenv().ok();
 
     let client = Client::new();
