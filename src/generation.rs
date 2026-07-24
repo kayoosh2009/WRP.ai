@@ -41,23 +41,17 @@ impl TokenManager {
                     is_busy: false,
                 });
             }
-            println!("⚠️ OLLAMA_API_KEYS не найден в .env. Используется 100 тестовых токенов.");
+            println!("⚠️ OLLAMA_API_KEYS не найден. Используется 100 тестовых токенов.");
         } else {
             for token in env_tokens.split(',') {
                 let trimmed = token.trim().to_string();
                 if !trimmed.is_empty() {
-                    states.push(TokenState {
-                        token: trimmed,
-                        is_busy: false,
-                    });
+                    states.push(TokenState { token: trimmed, is_busy: false });
                 }
             }
             println!("✅ Загружено {} токенов из .env", states.len());
         }
-
-        Self {
-            tokens: Arc::new(Mutex::new(states)),
-        }
+        Self { tokens: Arc::new(Mutex::new(states)) }
     }
 
     pub fn acquire_token(&self) -> Option<TokenGuard> {
@@ -72,13 +66,13 @@ impl TokenManager {
                 });
             }
         }
-        None 
+        None
     }
 }
 
 pub struct TokenGuard {
     index: usize,
-    #[allow(dead_code)] 
+    #[allow(dead_code)]
     token: String,
     manager: Arc<Mutex<Vec<TokenState>>>,
 }
@@ -95,7 +89,7 @@ impl Drop for TokenGuard {
 
 pub struct GenerationSettings {
     pub char_prompt: String,
-    pub rules: String, 
+    pub rules: String,
 }
 
 pub async fn generate_rp_response(
@@ -105,31 +99,27 @@ pub async fn generate_rp_response(
     history: Vec<Message>,
     settings: &GenerationSettings,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    
-    let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты. Попробуйте позже.")?;
+    let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты.")?;
 
     let system_content = format!(
-        "РОЛЬ: {}\n\nПРАВИЛА ОТВЕТА: {}\n\nОтвечай строго на русском языке, сохраняя атмосферу.",
-        settings.char_prompt,
-        settings.rules
+        "РОЛЬ: {}\n\nПРАВИЛА ОТВЕТА: {}\n\nОтвечай строго на русском языке.",
+        settings.char_prompt, settings.rules
     );
 
     let mut messages = vec![Message {
         role: "system".to_string(),
         content: system_content,
     }];
-    
     messages.extend(history);
-    
     messages.push(Message {
         role: "user".to_string(),
         content: user_input.to_string(),
     });
 
     let request_payload = OllamaRequest {
-        model: "gemma4:cloud".to_string(), 
+        model: "gemma4:cloud".to_string(),
         messages,
-        stream: false, 
+        stream: false,
     };
 
     let response = client
@@ -142,45 +132,9 @@ pub async fn generate_rp_response(
 
     if !response.status().is_success() {
         let err_text = response.text().await?;
-        return Err(format!("Ollama API вернул ошибку: {}", err_text).into());
+        return Err(format!("Ollama API ошибка: {}", err_text).into());
     }
 
     let ollama_response: OllamaResponse = response.json().await?;
-    
     Ok(ollama_response.message.content)
-}
-
-#[tokio::main]
-async fn main() {
-    dotenvy::dotenv().ok();
-
-    let client = Client::new();
-    let token_manager = TokenManager::new();
-
-    let settings = GenerationSettings {
-        char_prompt: "Ты — загадочный эльф-следопыт по имени Лириэль. Ты говоришь тихо, загадочно и немного насмешливо.".to_string(),
-        rules: "Будь легкой к пользователю. Не пиши много текста (максимум 2-3 абзаца). Описывай свои действия после символа >>".to_string(),
-    };
-
-    let history = vec![
-        Message { role: "user".to_string(), content: "Привет, кто ты?".to_string() },
-        Message { role: "assistant".to_string(), content: ">> Легкий кивок из тени. Я Лириэль. А ты, кажется, заблудился, путник.".to_string() },
-    ];
-
-    println!("🔄 Запрос к ИИ...");
-    
-    match generate_rp_response(
-        &client,
-        &token_manager,
-        "Покажи мне дорогу к древним руинам.",
-        history,
-        &settings,
-    ).await {
-        Ok(response) => {
-            println!("✅ Ответ бота:\n{}", response);
-        }
-        Err(e) => {
-            println!("❌ Ошибка: {}", e);
-        }
-    }
 }
