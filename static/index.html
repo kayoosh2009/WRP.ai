@@ -9,9 +9,9 @@
 <body>
 
     <!-- Верхняя панель (Header) -->
-        <header class="top-bar">
+    <header class="top-bar">
         <div class="header-left">
-            <button class="menu-toggle" onclick="toggleMenu()">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
                 <img src="img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
             </button>
             <div class="logo">WRP.ai</div>
@@ -64,22 +64,31 @@
         </main>
     </div>
 
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
     <script>
-        // Загружаем персонажей с бекэнда при загрузке страницы
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            const overlay = document.getElementById('overlay');
+            
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
+            overlay.classList.toggle('active');
+        }
+
+        // Загрузка персонажей
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/characters');
                 if (!response.ok) throw new Error('Failed to fetch');
-                
                 const characters = await response.json();
                 const grid = document.getElementById('character-grid');
-                grid.innerHTML = ''; // Очищаем текст загрузки
-
+                grid.innerHTML = '';
                 if (characters.length === 0) {
-                    grid.innerHTML = '<p>No characters found in database.</p>';
+                    grid.innerHTML = '<p class="loading-text">No characters found.</p>';
                     return;
                 }
-
                 characters.forEach(char => {
                     const card = document.createElement('div');
                     card.className = 'character-card';
@@ -88,9 +97,7 @@
                         <div class="card-info">
                             <h3>${char.name}</h3>
                             <p>${char.description.substring(0, 80)}...</p>
-                            <div class="card-stats">
-                                <span>💬 ${char.message_count} messages</span>
-                            </div>
+                            <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
                             <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
                         </div>
                     `;
@@ -98,21 +105,22 @@
                 });
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('character-grid').innerHTML = '<p class="error-text">Failed to load characters. Is the backend running?</p>';
+                document.getElementById('character-grid').innerHTML = `
+                    <div class="character-card">
+                        <div class="card-image" style="background-color: #4a434b;"></div>
+                        <div class="card-info">
+                            <h3>Demo Character</h3>
+                            <p>Backend is not fully connected yet.</p>
+                            <div class="card-stats"><span>💬 0 messages</span></div>
+                            <button class="chat-btn">Start Chat</button>
+                        </div>
+                    </div>
+                `;
             }
         });
 
         function startChat(charId) {
-            // Пока просто алерт, позже здесь будет переход на страницу чата
             alert(`Starting chat with character ID: ${charId}`);
-            // window.location.href = `/chat/${charId}`;
-        }
-
-        function toggleMenu() {
-            const sidebar = document.getElementById('sidebar');
-            const menuIcon = document.getElementById('menuIcon');
-            sidebar.classList.toggle('open');
-            menuIcon.classList.toggle('rotated');
         }
     </script>
 </body>

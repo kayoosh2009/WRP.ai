@@ -260,31 +260,72 @@ body {
     gap: 10px;
     margin: 15px;
     padding: 12px;
-    background-color: #0088cc; /* Цвет Telegram */
-    color: var(--text-light);
+    background-color: transparent;
+    border: 2px solid #F3F0E7;
+    color: #F3F0E7;
     text-decoration: none;
     border-radius: 8px;
     font-weight: bold;
     font-size: 0.9rem;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 
 .telegram-btn:hover {
-    opacity: 0.9;
+    background-color: #F3F0E7;
+    color: #2A2529;
     transform: translateY(-2px);
+}
+
+/* --- Overlay для затемнения на мобильных --- */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 80;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 /* --- Адаптивность для мобильных устройств --- */
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-100%); /* Скрыто по умолчанию на мобильных */
+        transform: translateX(-100%);
     }
     
     .sidebar.open {
-        transform: translateX(0); /* Показываем при нажатии на меню */
+        transform: translateX(0);
     }
     
     .main-content {
         margin-left: 0;
+    }
+    
+    .search-bar input {
+        width: 150px;
+    }
+    
+    .character-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+}
+
+/* --- Адаптивность для очень маленьких экранов --- */
+@media (max-width: 480px) {
+    .search-bar {
+        display: none;
+    }
+    
+    .character-grid {
+        grid-template-columns: 1fr;
     }
 }
