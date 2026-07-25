@@ -79,6 +79,13 @@ body {
     position: fixed;
     height: 100%;
     overflow-y: auto;
+    transition: transform 0.3s ease;
+    transform: translateX(-100%);   /* добавить: скрыт по умолчанию */
+    z-index: 90;
+}
+
+.sidebar.open {
+    transform: translateX(0);       /* добавить: показываем при открытии */
 }
 
 .nav-item {
@@ -107,7 +114,7 @@ body {
 
 /* --- Main Content --- */
 .main-content {
-    margin-left: 240px; /* Отступ под sidebar */
+    margin-left: 0;   /* было: margin-left: 240px; */
     padding: 24px;
     width: 100%;
 }
@@ -233,7 +240,8 @@ body {
     background-color: var(--bg-dark);
     padding: 10px 0;
     position: fixed;
-    height: 100%;
+    top: 60px;                      /* было не указано */
+    height: calc(100% - 60px);
     overflow-y: auto;
     display: flex;
     flex-direction: column; /* Позволяет прижать нижний элемент */
@@ -297,18 +305,6 @@ body {
 
 /* --- Адаптивность для мобильных устройств --- */
 @media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
-    .main-content {
-        margin-left: 0;
-    }
-    
     .search-bar input {
         width: 150px;
     }
