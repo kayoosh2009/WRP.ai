@@ -45,14 +45,7 @@ impl TokenManager {
         }
 
         if states.is_empty() {
-            // Если в .env вообще нет таких ключей, генерируем 100 тестовых
-            for i in 1..=100 {
-                states.push(TokenState {
-                    token: format!("dummy_test_token_{}", i),
-                    is_busy: false,
-                });
-            }
-            println!("⚠️ Токены OLLAMA_API_KEY_* не найдены в .env. Используется 100 тестовых.");
+            println!("⚠️ Токены OLLAMA_API_KEY_* не найдены в .env. Генерация ответов будет недоступна, пока не будет добавлен хотя бы один токен.");
         } else {
             println!("✅ Загружено {} отдельных токенов из .env", states.len());
         }

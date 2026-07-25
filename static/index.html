@@ -105,17 +105,8 @@
                 });
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('character-grid').innerHTML = `
-                    <div class="character-card">
-                        <div class="card-image" style="background-color: #4a434b;"></div>
-                        <div class="card-info">
-                            <h3>Demo Character</h3>
-                            <p>Backend is not fully connected yet.</p>
-                            <div class="card-stats"><span>💬 0 messages</span></div>
-                            <button class="chat-btn">Start Chat</button>
-                        </div>
-                    </div>
-                `;
+                document.getElementById('character-grid').innerHTML =
+                    '<p class="error-text">Failed to load characters. Please try again later.</p>';
             }
         });
 
