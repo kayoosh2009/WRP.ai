@@ -193,3 +193,98 @@ body {
 .error-text {
     color: #ff6b6b;
 }
+
+/* --- Кнопка меню и поворот иконки --- */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.menu-toggle:hover {
+    background-color: var(--hover-bg);
+}
+
+.menu-icon {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.3s ease;
+}
+
+.menu-icon.rotated {
+    transform: rotate(90deg);
+}
+
+/* --- Обновление Sidebar для прижатия кнопки вниз --- */
+.sidebar {
+    width: 240px;
+    background-color: var(--bg-dark);
+    padding: 10px 0;
+    position: fixed;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column; /* Позволяет прижать нижний элемент */
+    transition: transform 0.3s ease;
+    z-index: 90;
+}
+
+.sidebar-nav {
+    flex: 1; /* Занимает всё доступное пространство, толкая Telegram вниз */
+}
+
+.nav-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    margin-right: 15px;
+}
+
+/* --- Кнопка Telegram внизу --- */
+.telegram-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px;
+    padding: 12px;
+    background-color: #0088cc; /* Цвет Telegram */
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.telegram-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* --- Адаптивность для мобильных устройств --- */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%); /* Скрыто по умолчанию на мобильных */
+    }
+    
+    .sidebar.open {
+        transform: translateX(0); /* Показываем при нажатии на меню */
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+}

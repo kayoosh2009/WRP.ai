@@ -9,35 +9,50 @@
 <body>
 
     <!-- Верхняя панель (Header) -->
-    <header class="top-bar">
-        <div class="logo">WRP.ai</div>
+        <header class="top-bar">
+        <div class="header-left">
+            <button class="menu-toggle" onclick="toggleMenu()">
+                <img src="img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
+            </button>
+            <div class="logo">WRP.ai</div>
+        </div>
+        
         <div class="search-bar">
             <input type="text" placeholder="Search characters...">
         </div>
+        
         <div class="user-avatar">
-            <!-- Заглушка для аватарки -->
             <div class="avatar-circle">U</div>
         </div>
     </header>
 
     <div class="layout-container">
         <!-- Левое меню (Sidebar) -->
-        <aside class="sidebar">
-            <nav>
-                <a href="#" class="nav-item active">
-                    <span class="icon">🏠</span> Home
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="/" class="nav-item active">
+                        <img src="img/home.png" alt="Home" class="nav-icon"> 
+                        <span>Home</span>
+                    </a>
+                    <a href="/trending" class="nav-item">
+                        <img src="img/trending.png" alt="Trending" class="nav-icon"> 
+                        <span>Trending</span>
+                    </a>
+                    <a href="/favorites" class="nav-item">
+                        <img src="img/favorites.png" alt="Favorites" class="nav-icon"> 
+                        <span>Favorites</span>
+                    </a>
+                    <a href="/settings" class="nav-item">
+                        <img src="img/settings.png" alt="Settings" class="nav-icon"> 
+                        <span>Settings</span>
+                    </a>
+                </nav>
+
+                <a href="https://t.me/your_dev_channel" target="_blank" class="telegram-btn">
+                    <img src="img/telegram.png" alt="Telegram" class="nav-icon">
+                    <span>Subscribe to dev's Telegram</span>
                 </a>
-                <a href="#" class="nav-item">
-                    <span class="icon">🔥</span> Trending
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="icon">⭐</span> Favorites
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="icon">⚙️</span> Settings
-                </a>
-            </nav>
-        </aside>
+            </aside>
 
         <!-- Основной контент (Список моделей) -->
         <main class="main-content">
@@ -91,6 +106,13 @@
             // Пока просто алерт, позже здесь будет переход на страницу чата
             alert(`Starting chat with character ID: ${charId}`);
             // window.location.href = `/chat/${charId}`;
+        }
+
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
         }
     </script>
 </body>
