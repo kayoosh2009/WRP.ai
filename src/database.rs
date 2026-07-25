@@ -12,6 +12,11 @@ pub struct FirestoreDb {
 // --- Firestore JSON Parsing Structures ---
 
 #[derive(Deserialize, Debug)]
+struct FirestoreListResponse {
+    documents: Vec<FirestoreDocument>,
+}
+
+#[derive(Deserialize, Debug)]
 struct FirestoreDocument {
     #[allow(dead_code)]
     name: String,
