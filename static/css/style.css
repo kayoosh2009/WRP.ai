@@ -1,0 +1,195 @@
+:root {
+    --bg-dark: #2A2529;
+    --text-light: #F3F0E7;
+    --accent: #F3F0E7;
+    --card-bg: #3a343a; /* Чуть светлее основного фона для карточек */
+    --hover-bg: #4a434b;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+}
+
+/* --- Header --- */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: var(--bg-dark);
+    border-bottom: 1px solid var(--hover-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--text-light);
+}
+
+.search-bar input {
+    background-color: var(--card-bg);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    padding: 8px 15px;
+    border-radius: 20px;
+    width: 300px;
+    outline: none;
+}
+
+.avatar-circle {
+    width: 36px;
+    height: 36px;
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- Layout --- */
+.layout-container {
+    display: flex;
+    margin-top: 60px; /* Отступ под фиксированный header */
+    min-height: calc(100vh - 60px);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+    width: 240px;
+    background-color: var(--bg-dark);
+    padding: 10px 0;
+    position: fixed;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+.nav-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.nav-item.active {
+    background-color: var(--hover-bg);
+    font-weight: bold;
+}
+
+.nav-item .icon {
+    margin-right: 15px;
+    font-size: 1.2rem;
+}
+
+/* --- Main Content --- */
+.main-content {
+    margin-left: 240px; /* Отступ под sidebar */
+    padding: 24px;
+    width: 100%;
+}
+
+.main-content h2 {
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+}
+
+/* --- Character Grid --- */
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.character-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.character-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+.card-image {
+    width: 100%;
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--hover-bg);
+}
+
+.card-info {
+    padding: 15px;
+}
+
+.card-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.card-info p {
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.card-stats {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 15px;
+}
+
+.chat-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.chat-btn:hover {
+    opacity: 0.9;
+}
+
+.loading-text, .error-text {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #aaa;
+}
+
+.error-text {
+    color: #ff6b6b;
+}
