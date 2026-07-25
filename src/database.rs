@@ -106,6 +106,31 @@ impl FirestoreDb {
         Ok(character)
     }
 
+    pub async fn get_all_characters(&self) -> Result<Vec<RpCharacter>, Box<dyn std::error::Error>> {
+        let url = format!("{}/characters?key={}", self.base_url(), self.api_key);
+        println!("🔍 [DB] Fetching all characters from Firestore...");
+        
+        let response = self.client.get(&url).send().await?;
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET ALL error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let mut characters = Vec::new();
+
+        for doc in list_response.documents {
+            // Извлекаем ID из полного имени документа (например, "projects/.../documents/characters/char_123")
+            let char_id = doc.name.split('/').last().unwrap_or("unknown").to_string();
+            
+            if let Ok(character) = self.parse_character(&char_id, doc) {
+                characters.push(character);
+            }
+        }
+
+        Ok(characters)
+    }
+    
     /// Increment the message count for a specific character
     pub async fn increment_message_count(&self, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         // 1. Read current state to get the existing count

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Верхняя панель (Header) -->
+    <header class="top-bar">
+        <div class="logo">WRP.ai</div>
+        <div class="search-bar">
+            <input type="text" placeholder="Search characters...">
+        </div>
+        <div class="user-avatar">
+            <!-- Заглушка для аватарки -->
+            <div class="avatar-circle">U</div>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <!-- Левое меню (Sidebar) -->
+        <aside class="sidebar">
+            <nav>
+                <a href="#" class="nav-item active">
+                    <span class="icon">🏠</span> Home
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">🔥</span> Trending
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">⭐</span> Favorites
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">⚙️</span> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Основной контент (Список моделей) -->
+        <main class="main-content">
+            <h2>Available Characters</h2>
+            <div id="character-grid" class="character-grid">
+                <!-- Сюда JavaScript добавит карточки персонажей -->
+                <p class="loading-text">Loading characters...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Загружаем персонажей с бекэнда при загрузке страницы
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/characters');
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const characters = await response.json();
+                const grid = document.getElementById('character-grid');
+                grid.innerHTML = ''; // Очищаем текст загрузки
+
+                if (characters.length === 0) {
+                    grid.innerHTML = '<p>No characters found in database.</p>';
+                    return;
+                }
+
+                characters.forEach(char => {
+                    const card = document.createElement('div');
+                    card.className = 'character-card';
+                    card.innerHTML = `
+                        <div class="card-image" style="background-image: url('${char.avatar_url || 'https://via.placeholder.com/300x200'}');"></div>
+                        <div class="card-info">
+                            <h3>${char.name}</h3>
+                            <p>${char.description.substring(0, 80)}...</p>
+                            <div class="card-stats">
+                                <span>💬 ${char.message_count} messages</span>
+                            </div>
+                            <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('character-grid').innerHTML = '<p class="error-text">Failed to load characters. Is the backend running?</p>';
+            }
+        });
+
+        function startChat(charId) {
+            // Пока просто алерт, позже здесь будет переход на страницу чата
+            alert(`Starting chat with character ID: ${charId}`);
+            // window.location.href = `/chat/${charId}`;
+        }
+    </script>
+</body>
+</html>
