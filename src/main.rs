@@ -106,3 +106,121 @@ async fn get_characters_handler(
         }
     }
 }
+
+// GET /api/characters/:char_id — детали одного персонажа
+async fn get_character_handler(
+    State(state): State<AppState>,
+    Path(char_id): Path<String>,
+) -> Result<Json<model::RpCharacter>, StatusCode> {
+    match state.db.get_character(&char_id).await {
+        Ok(character) => Ok(Json(character)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении персонажа {}: {}", char_id, e);
+            Err(StatusCode::NOT_FOUND)
+        }
+    }
+}
+
+// POST /api/characters — создание нового персонажа (требует авторизации)
+async fn create_character_handler(
+    State(state): State<AppState>,
+    Extension(_user): Extension<AuthUser>,
+    Json(payload): Json<CreateCharacterRequest>,
+) -> Result<Json<model::RpCharacter>, StatusCode> {
+    if payload.name.trim().is_empty() || payload.internal_prompt.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    match state.db.create_character(
+        &payload.name,
+        &payload.avatar_url,
+        &payload.description,
+        &payload.internal_prompt,
+    ).await {
+        Ok(character) => Ok(Json(character)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при создании персонажа: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// GET /api/chat/:char_id — история переписки текущего пользователя с персонажем
+async fn get_chat_history_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+) -> Result<Json<Vec<Message>>, StatusCode> {
+    match state.db.get_chat_history(&char_id, &user.uid).await {
+        Ok(history) => Ok(Json(history)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении истории чата: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// POST /api/chat/:char_id — отправка сообщения и получение ответа ИИ
+async fn send_chat_message_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+    Json(payload): Json<ChatMessageRequest>,
+) -> Result<Json<ChatMessageResponse>, StatusCode> {
+    if payload.message.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // 1. Достаём персонажа, чтобы взять его internal_prompt
+    let character = state.db.get_character(&char_id).await.map_err(|e| {
+        eprintln!("❌ Персонаж не найден {}: {}", char_id, e);
+        StatusCode::NOT_FOUND
+    })?;
+
+    // 2. Достаём историю чата этого пользователя с персонажем
+    let history = state.db.get_chat_history(&char_id, &user.uid).await.unwrap_or_default();
+
+    let settings = GenerationSettings {
+        char_prompt: character.internal_prompt.clone(),
+        rules: "Оставайся в роли персонажа, отвечай живо и по существу.".to_string(),
+    };
+
+    // 3. Генерируем ответ ИИ
+    let reply = generation::generate_rp_response(
+        &state.http_client,
+        &state.token_manager,
+        &payload.message,
+        history,
+        &settings,
+    ).await.map_err(|e| {
+        eprintln!("❌ Ошибка генерации ответа: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // 4. Сохраняем оба сообщения в историю
+    if let Err(e) = state.db.save_message(&char_id, &user.uid, "user", &payload.message).await {
+        eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
+    }
+    if let Err(e) = state.db.save_message(&char_id, &user.uid, "assistant", &reply).await {
+        eprintln!("⚠️ Не удалось сохранить ответ ассистента: {}", e);
+    }
+
+    // 5. Инкрементируем счётчик сообщений персонажа
+    if let Err(e) = state.db.increment_message_count(&char_id).await {
+        eprintln!("⚠️ Не удалось обновить счётчик сообщений: {}", e);
+    }
+
+    Ok(Json(ChatMessageResponse { reply }))
+}
+
+// GET /api/me — данные текущего авторизованного пользователя
+async fn get_me_handler(
+    Extension(user): Extension<AuthUser>,
+) -> Json<MeResponse> {
+    Json(MeResponse {
+        uid: user.uid,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+    })
+}
