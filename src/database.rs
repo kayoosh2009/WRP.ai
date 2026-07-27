@@ -67,6 +67,7 @@ impl FirestoreDb {
         &self.project_id
     }
 
+
     fn base_url(&self) -> String {
         format!(
             "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents",
@@ -143,6 +144,123 @@ impl FirestoreDb {
         Ok(characters)
     }
     
+    /// Создать нового RP-персонажа. ID генерируется автоматически Firestore.
+    pub async fn create_character(
+        &self,
+        name: &str,
+        avatar_url: &str,
+        description: &str,
+        internal_prompt: &str,
+    ) -> Result<RpCharacter, Box<dyn std::error::Error>> {
+        let url = format!("{}/characters?key={}", self.base_url(), self.api_key);
+
+        let body = serde_json::json!({
+            "fields": {
+                "name": { "stringValue": name },
+                "avatar_url": { "stringValue": avatar_url },
+                "description": { "stringValue": description },
+                "internal_prompt": { "stringValue": internal_prompt },
+                "message_count": { "integerValue": "0" }
+            }
+        });
+
+        println!("🆕 [DB] Создаю нового персонажа: {}", name);
+
+        let response = self.client.post(&url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore CREATE error: {}", err_text).into());
+        }
+
+        let doc: FirestoreDocument = response.json().await?;
+        let char_id = doc.name.split('/').last().unwrap_or("unknown").to_string();
+
+        let character = self.parse_character(&char_id, doc)
+            .map_err(|e| format!("Failed to parse created character: {}", e))?;
+
+        Ok(character)
+    }
+
+    /// Сохранить одно сообщение в историю чата пользователя с персонажем
+    pub async fn save_message(
+        &self,
+        char_id: &str,
+        uid: &str,
+        role: &str,
+        content: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!(
+            "{}/characters/{}/chats/{}/messages?key={}",
+            self.base_url(),
+            char_id,
+            uid,
+            self.api_key
+        );
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        let body = serde_json::json!({
+            "fields": {
+                "role": { "stringValue": role },
+                "content": { "stringValue": content },
+                "timestamp": { "integerValue": timestamp.to_string() }
+            }
+        });
+
+        let response = self.client.post(&url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore SAVE MESSAGE error: {}", err_text).into());
+        }
+
+        Ok(())
+    }
+
+    /// Получить историю чата пользователя с конкретным персонажем, отсортированную по времени
+    pub async fn get_chat_history(
+        &self,
+        char_id: &str,
+        uid: &str,
+    ) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
+        let url = format!(
+            "{}/characters/{}/chats/{}/messages?key={}",
+            self.base_url(),
+            char_id,
+            uid,
+            self.api_key
+        );
+
+        let response = self.client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            // Если подколлекции сообщений ещё не существует — это не ошибка, просто пустой чат
+            if response.status().as_u16() == 404 {
+                return Ok(Vec::new());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET HISTORY error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let mut messages: Vec<(i64, Message)> = Vec::new();
+
+        for doc in &list_response.documents {
+            if let Ok(parsed) = self.parse_message(doc) {
+                messages.push(parsed);
+            }
+        }
+
+        // Firestore REST list не гарантирует порядок документов — сортируем сами
+        messages.sort_by_key(|(ts, _)| *ts);
+
+        Ok(messages.into_iter().map(|(_, m)| m).collect())
+    }
+
     /// Increment the message count for a specific character
     pub async fn increment_message_count(&self, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         // 1. Read current state to get the existing count
