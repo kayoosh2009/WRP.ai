@@ -68,6 +68,32 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+#[derive(Deserialize)]
+struct CreateCharacterRequest {
+    name: String,
+    avatar_url: String,
+    description: String,
+    internal_prompt: String,
+}
+
+#[derive(Deserialize)]
+struct ChatMessageRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ChatMessageResponse {
+    reply: String,
+}
+
+#[derive(Serialize)]
+struct MeResponse {
+    uid: String,
+    email: Option<String>,
+    name: Option<String>,
+    picture: Option<String>,
+}
+
 // Обработчик для GET /api/characters
 async fn get_characters_handler(
     State(state): State<AppState>,
