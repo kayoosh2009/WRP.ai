@@ -54,7 +54,8 @@ async fn main() {
     // Публичные роуты
     let public_routes = Router::new()
         .route("/api/characters", get(get_characters_handler))
-        .route("/api/characters/:char_id", get(get_character_handler));
+        .route("/api/characters/:char_id", get(get_character_handler))
+        .route("/api/firebase-config", get(get_firebase_config_handler));
 
     let app = Router::new()
         .merge(public_routes)
@@ -92,6 +93,16 @@ struct MeResponse {
     email: Option<String>,
     name: Option<String>,
     picture: Option<String>,
+}
+
+#[derive(Serialize)]
+struct FirebaseConfigResponse {
+    api_key: String,
+    auth_domain: String,
+    project_id: String,
+    storage_bucket: String,
+    messaging_sender_id: String,
+    app_id: String,
 }
 
 // Обработчик для GET /api/characters
@@ -214,6 +225,7 @@ async fn send_chat_message_handler(
 }
 
 // GET /api/me — данные текущего авторизованного пользователя
+// GET /api/me — данные текущего авторизованного пользователя
 async fn get_me_handler(
     Extension(user): Extension<AuthUser>,
 ) -> Json<MeResponse> {
@@ -222,5 +234,17 @@ async fn get_me_handler(
         email: user.email,
         name: user.name,
         picture: user.picture,
+    })
+}
+
+// GET /api/firebase-config — публичный конфиг для инициализации Firebase JS SDK на клиенте
+async fn get_firebase_config_handler() -> Json<FirebaseConfigResponse> {
+    Json(FirebaseConfigResponse {
+        api_key: std::env::var("FIREBASE_API_KEY").unwrap_or_default(),
+        auth_domain: std::env::var("FIREBASE_AUTH_DOMAIN").unwrap_or_default(),
+        project_id: std::env::var("FIREBASE_PROJECT_ID").unwrap_or_default(),
+        storage_bucket: std::env::var("FIREBASE_STORAGE_BUCKET").unwrap_or_default(),
+        messaging_sender_id: std::env::var("FIREBASE_MESSAGING_SENDER_ID").unwrap_or_default(),
+        app_id: std::env::var("FIREBASE_APP_ID").unwrap_or_default(),
     })
 }
