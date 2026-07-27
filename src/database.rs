@@ -46,6 +46,10 @@ impl FirestoreDb {
         }
     }
 
+    pub fn project_id(&self) -> &str {
+        &self.project_id
+    }
+    
     fn base_url(&self) -> String {
         format!(
             "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents",

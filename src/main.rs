@@ -1,6 +1,7 @@
 mod generation;
 mod model;
 mod database;
+mod auth;
 
 use axum::{
     extract::State,
