@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Верхняя панель (Header) -->
+    <header class="top-bar">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <img src="img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
+            </button>
+            <div class="logo">WRP.ai</div>
+        </div>
+        
+        <div class="search-bar">
+            <input type="text" placeholder="Search characters...">
+        </div>
+        
+        <div class="user-avatar">
+            <div class="avatar-circle">U</div>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <!-- Левое меню (Sidebar) -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="/" class="nav-item active">
+                        <img src="img/home.png" alt="Home" class="nav-icon"> 
+                        <span>Home</span>
+                    </a>
+                    <a href="/trending" class="nav-item">
+                        <img src="img/trending.png" alt="Trending" class="nav-icon"> 
+                        <span>Trending</span>
+                    </a>
+                    <a href="/favorites" class="nav-item">
+                        <img src="img/favorites.png" alt="Favorites" class="nav-icon"> 
+                        <span>Favorites</span>
+                    </a>
+                    <a href="/settings" class="nav-item">
+                        <img src="img/settings.png" alt="Settings" class="nav-icon"> 
+                        <span>Settings</span>
+                    </a>
+                </nav>
+
+                <a href="https://t.me/your_dev_channel" target="_blank" class="telegram-btn">
+                    <img src="img/telegram.png" alt="Telegram" class="nav-icon">
+                    <span>Subscribe to dev's Telegram</span>
+                </a>
+            </aside>
+
+        <!-- Основной контент (Список моделей) -->
+        <main class="main-content">
+            <h2>Available Characters</h2>
+            <div id="character-grid" class="character-grid">
+                <!-- Сюда JavaScript добавит карточки персонажей -->
+                <p class="loading-text">Loading characters...</p>
+            </div>
+        </main>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <script>
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            const overlay = document.getElementById('overlay');
+            
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
+            overlay.classList.toggle('active');
+        }
+
+        // Загрузка персонажей
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/characters');
+                if (!response.ok) throw new Error('Failed to fetch');
+                const characters = await response.json();
+                const grid = document.getElementById('character-grid');
+                grid.innerHTML = '';
+                if (characters.length === 0) {
+                    grid.innerHTML = '<p class="loading-text">No characters found.</p>';
+                    return;
+                }
+                characters.forEach(char => {
+                    const card = document.createElement('div');
+                    card.className = 'character-card';
+                    card.innerHTML = `
+                        <div class="card-image" style="background-image: url('${char.avatar_url || 'https://via.placeholder.com/300x200'}');"></div>
+                        <div class="card-info">
+                            <h3>${char.name}</h3>
+                            <p>${char.description.substring(0, 80)}...</p>
+                            <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
+                            <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('character-grid').innerHTML =
+                    '<p class="error-text">Failed to load characters. Please try again later.</p>';
+            }
+        });
+
+        function startChat(charId) {
+            alert(`Starting chat with character ID: ${charId}`);
+        }
+    </script>
+</body>
+</html>
