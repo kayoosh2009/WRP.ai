@@ -2,6 +2,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::model::RpCharacter;
+use crate::generation::Message;
 
 pub struct FirestoreDb {
     client: Client,
@@ -49,7 +50,7 @@ impl FirestoreDb {
     pub fn project_id(&self) -> &str {
         &self.project_id
     }
-    
+
     fn base_url(&self) -> String {
         format!(
             "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents",
@@ -57,32 +58,23 @@ impl FirestoreDb {
         )
     }
 
-    // Helper to parse the complex Firestore JSON response into our RpCharacter struct
     fn parse_character(&self, char_id: &str, doc: FirestoreDocument) -> Result<RpCharacter, String> {
-        let get_string = |key: &str| -> Result<String, String> {
-            match doc.fields.get(key) {
-                Some(FirestoreValue::String { stringValue }) => Ok(stringValue.clone()),
-                _ => Err(format!("Missing or invalid string field: {}", key)),
-            }
-        };
-
-        let get_integer = |key: &str| -> Result<u64, String> {
-            match doc.fields.get(key) {
-                Some(FirestoreValue::Integer { integerValue }) => {
-                    integerValue.parse::<u64>().map_err(|e| e.to_string())
-                }
-                _ => Err(format!("Missing or invalid integer field: {}", key)),
-            }
-        };
-
         Ok(RpCharacter {
             id: char_id.to_string(),
-            name: get_string("name")?,
-            avatar_url: get_string("avatar_url")?,
-            description: get_string("description")?,
-            internal_prompt: get_string("internal_prompt")?,
-            message_count: get_integer("message_count").unwrap_or(0),
+            name: get_string_field(&doc.fields, "name")?,
+            avatar_url: get_string_field(&doc.fields, "avatar_url")?,
+            description: get_string_field(&doc.fields, "description")?,
+            internal_prompt: get_string_field(&doc.fields, "internal_prompt")?,
+            message_count: get_integer_field(&doc.fields, "message_count").unwrap_or(0) as u64,
         })
+    }
+
+    // Helper to parse a single chat message document
+    fn parse_message(&self, doc: &FirestoreDocument) -> Result<(i64, Message), String> {
+        let role = get_string_field(&doc.fields, "role")?;
+        let content = get_string_field(&doc.fields, "content")?;
+        let timestamp = get_integer_field(&doc.fields, "timestamp").unwrap_or(0);
+        Ok((timestamp, Message { role, content }))
     }
 
     /// Fetch a character from Firestore by their ID
