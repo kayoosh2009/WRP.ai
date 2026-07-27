@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Вход</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+
+    <div class="login-card">
+        <div class="login-logo">WRP.ai</div>
+        <p class="login-subtitle">Войдите, чтобы общаться с персонажами</p>
+
+        <button id="googleSignInBtn" class="google-btn">
+            <img src="img/google.png" alt="Google" class="google-icon">
+            <span>Войти через Google</span>
+        </button>
+
+        <p id="loginError" class="login-error" hidden></p>
+    </div>
+
+    <script type="module">
+        import { signInWithGoogle, getCachedUser } from '/js/auth.js';
+
+        // Если уже залогинены — сразу на главную
+        if (getCachedUser()) {
+            window.location.href = '/';
+        }
+
+        const btn = document.getElementById('googleSignInBtn');
+        const errorEl = document.getElementById('loginError');
+
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            errorEl.hidden = true;
+            try {
+                await signInWithGoogle();
+                window.location.href = '/';
+            } catch (e) {
+                console.error('Ошибка входа:', e);
+                errorEl.textContent = 'Не удалось войти через Google. Попробуйте ещё раз.';
+                errorEl.hidden = false;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -324,5 +324,86 @@ body {
     .character-grid {
         grid-template-columns: 1fr;
     }
+}/* --- Адаптивность для очень маленьких экранов --- */
+@media (max-width: 480px) {
+    .search-bar {
+        display: none;
+    }
+    
+    .character-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Страница входа (login.html) --- */
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-card {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    padding: 40px 32px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.login-logo {
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.login-subtitle {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin-bottom: 28px;
+    line-height: 1.4;
+}
+
+.google-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.google-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.google-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.login-error {
+    margin-top: 16px;
+    color: #ff6b6b;
+    font-size: 0.85rem;
 }
 
