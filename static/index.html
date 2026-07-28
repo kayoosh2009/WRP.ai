@@ -172,7 +172,9 @@
                     grid.innerHTML = '<p class="loading-text">No characters found.</p>';
                     return;
                 }
-                characters.forEach(char => {
+                const AD_EVERY_N_CARDS = 6;
+
+                characters.forEach((char, index) => {
                     const card = document.createElement('div');
                     card.className = 'character-card';
                     card.innerHTML = `
@@ -185,6 +187,16 @@
                         </div>
                     `;
                     grid.appendChild(card);
+
+                    if ((index + 1) % AD_EVERY_N_CARDS === 0) {
+                        const adSlot = document.createElement('div');
+                        adSlot.className = 'ad-slot';
+                        // TODO: вставь сюда свой код объявления от A-ADS (300x250)
+                        adSlot.innerHTML = `
+                            <iframe data-aa='YOUR_AD_UNIT_ID' src='//ad.a-ads.com/YOUR_AD_UNIT_ID?size=300x250' style='width:300px; height:250px; border:0; padding:0; overflow:hidden; background-color: transparent;' scrolling='no'></iframe>
+                        `;
+                        grid.appendChild(adSlot);
+                    }
                 });
             } catch (error) {
                 console.error('Error:', error);
