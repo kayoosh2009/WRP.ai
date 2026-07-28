@@ -27,8 +27,29 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="avatar_url">Avatar image URL</label>
-                    <input type="url" id="avatar_url" name="avatar_url" placeholder="https://example.com/avatar.png">
+                    <label for="avatar_file">Avatar image</label>
+                    <input type="file" id="avatar_file" name="avatar_file" accept="image/png, image/jpeg, image/webp">
+                    <p class="field-hint">PNG, JPG or WEBP, up to 500 KB. Optional.</p>
+                    <img id="avatarPreview" class="avatar-preview" hidden>
+                </div>
+
+                <div class="form-group">
+                    <label for="language">Language</label>
+                    <select id="language" name="language">
+                        <option value="ru">Russian</option>
+                        <option value="en" selected>English</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <input type="text" id="languageOther" class="language-other-input" placeholder="Enter language, e.g. Spanish" hidden maxlength="40">
+                </div>
+
+                <div class="form-group">
+                    <label for="violence_level">Story intensity</label>
+                    <select id="violence_level" name="violence_level">
+                        <option value="mild" selected>Mild — family-friendly</option>
+                        <option value="medium">Medium — some conflict and peril</option>
+                        <option value="graphic">Graphic — dark, intense themes allowed</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -65,18 +86,67 @@
             const form = document.getElementById('newCharacterForm');
             const submitBtn = document.getElementById('submitBtn');
             const errorEl = document.getElementById('formError');
+            const fileInput = document.getElementById('avatar_file');
+            const preview = document.getElementById('avatarPreview');
+            const languageSelect = document.getElementById('language');
+            const languageOtherInput = document.getElementById('languageOther');
+
+            const MAX_AVATAR_BYTES = 500 * 1024;
+            let avatarBase64 = '';
+
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (!file) {
+                    avatarBase64 = '';
+                    preview.hidden = true;
+                    return;
+                }
+                if (file.size > MAX_AVATAR_BYTES) {
+                    errorEl.textContent = 'Image is too large. Please choose a file under 500 KB.';
+                    errorEl.hidden = false;
+                    fileInput.value = '';
+                    avatarBase64 = '';
+                    preview.hidden = true;
+                    return;
+                }
+                errorEl.hidden = true;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    avatarBase64 = reader.result; // data:image/...;base64,...
+                    preview.src = avatarBase64;
+                    preview.hidden = false;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            languageSelect.addEventListener('change', () => {
+                languageOtherInput.hidden = languageSelect.value !== 'other';
+            });
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 errorEl.hidden = true;
+
+                let language = languageSelect.value;
+                if (language === 'other') {
+                    language = languageOtherInput.value.trim();
+                    if (!language) {
+                        errorEl.textContent = 'Please specify the language.';
+                        errorEl.hidden = false;
+                        return;
+                    }
+                }
+
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Creating...';
 
                 const payload = {
                     name: document.getElementById('name').value.trim(),
-                    avatar_url: document.getElementById('avatar_url').value.trim(),
+                    avatar_url: avatarBase64,
                     description: document.getElementById('description').value.trim(),
                     internal_prompt: document.getElementById('internal_prompt').value.trim(),
+                    language: language,
+                    violence_level: document.getElementById('violence_level').value,
                 };
 
                 try {
