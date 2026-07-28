@@ -243,6 +243,7 @@ impl FirestoreDb {
     /// Получить историю чата пользователя с конкретным персонажем, отсортированную по времени
     pub async fn get_chat_history(
         &self,
+        id_token: &str,
         char_id: &str,
         uid: &str,
     ) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
@@ -254,8 +255,11 @@ impl FirestoreDb {
             self.api_key
         );
 
-        let response = self.client.get(&url).send().await?;
-
+        let response = self.client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
         if !response.status().is_success() {
             // Если подколлекции сообщений ещё не существует — это не ошибка, просто пустой чат
             if response.status().as_u16() == 404 {
@@ -281,7 +285,7 @@ impl FirestoreDb {
     }
 
     /// Increment the message count for a specific character
-    pub async fn increment_message_count(&self, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn increment_message_count(&self, id_token: &str, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         // 1. Read current state to get the existing count
         let character = self.get_character(char_id).await?;
         let new_count = character.message_count + 1;
@@ -307,6 +311,7 @@ impl FirestoreDb {
 
         let response = self.client
             .patch(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
             .json(&body)
             .send()
             .await?;
