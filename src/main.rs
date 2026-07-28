@@ -157,7 +157,7 @@ async fn create_character_handler(
     let _ = ALLOWED_LANGUAGES; // зарезервировано, если позже захотим строгую валидацию ru/en
 
     match state.db.create_character(
-        &_user.id_token,
+        &user.id_token,
         &payload.name,
         &payload.avatar_url,
         &payload.description,
