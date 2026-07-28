@@ -1,5 +1,5 @@
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use crate::model::RpCharacter;
 use crate::generation::Message;
