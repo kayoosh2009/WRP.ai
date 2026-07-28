@@ -839,6 +839,17 @@ body {
     50% { opacity: 0; }
 }
 
+/* --- Ad slot in character grid --- */
+.ad-slot {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 250px;
+}
+
 
 /* --- Страница входа (login.html) --- */
 .login-page {
