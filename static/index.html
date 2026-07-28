@@ -21,8 +21,9 @@
             <input type="text" placeholder="Search characters...">
         </div>
         
-        <div class="user-avatar">
-            <div class="avatar-circle">U</div>
+        <div class="user-avatar" id="userAvatarArea">
+            <span class="login-hint" id="loginHint" hidden>Войдите в аккаунт</span>
+            <div class="avatar-circle" id="avatarCircle">U</div>
         </div>
     </header>
 
@@ -46,6 +47,10 @@
                         <img src="img/settings.png" alt="Settings" class="nav-icon"> 
                         <span>Settings</span>
                     </a>
+                    <a href="/new-character.html" class="nav-item">
+                        <img src="img/add.png" alt="Add" class="nav-icon"> 
+                        <span>Add character</span>
+                    </a>
                 </nav>
 
                 <a href="https://t.me/kayoosh_channel" target="_blank" class="telegram-btn">
@@ -66,8 +71,75 @@
 
     <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-    <script>
-        function toggleMenu() {
+    <!-- Модалка приглашения ко входу -->
+    <div class="modal-overlay" id="authModalOverlay">
+        <div class="modal-card">
+            <div class="modal-logo">WRP.ai</div>
+            <h3>Войдите в аккаунт</h3>
+            <p>Чтобы общаться с персонажами и сохранять историю чатов, нужно войти через Google.</p>
+            <div class="modal-actions">
+                <button class="modal-btn-primary" id="modalLoginBtn">Войти</button>
+                <button class="modal-btn-secondary" id="modalCloseBtn">Не сейчас</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getCachedUser, signOutUser } from '/js/auth.js';
+
+        const MODAL_DISMISSED_KEY = 'wrp_auth_modal_dismissed';
+
+        function updateAuthUi() {
+            const user = getCachedUser();
+            const avatarCircle = document.getElementById('avatarCircle');
+            const loginHint = document.getElementById('loginHint');
+
+            if (user) {
+                loginHint.hidden = true;
+                if (user.profile.picture) {
+                    avatarCircle.style.backgroundImage = `url('${user.profile.picture}')`;
+                    avatarCircle.style.backgroundSize = 'cover';
+                    avatarCircle.textContent = '';
+                } else {
+                    avatarCircle.textContent = (user.profile.name || 'U').charAt(0).toUpperCase();
+                }
+                avatarCircle.onclick = async () => {
+                    if (confirm('Выйти из аккаунта?')) {
+                        await signOutUser();
+                        updateAuthUi();
+                    }
+                };
+            } else {
+                loginHint.hidden = false;
+                avatarCircle.textContent = 'U';
+                avatarCircle.style.backgroundImage = '';
+                avatarCircle.onclick = () => {
+                    window.location.href = '/login.html';
+                };
+            }
+        }
+
+        function initAuthModal() {
+            const user = getCachedUser();
+            const overlay = document.getElementById('authModalOverlay');
+
+            if (user) return; // уже вошёл — модалка не нужна
+            if (sessionStorage.getItem(MODAL_DISMISSED_KEY)) return; // уже закрывал в этой сессии
+
+            overlay.classList.add('active');
+
+            document.getElementById('modalLoginBtn').addEventListener('click', () => {
+                window.location.href = '/login.html';
+            });
+
+            document.getElementById('modalCloseBtn').addEventListener('click', () => {
+                overlay.classList.remove('active');
+                sessionStorage.setItem(MODAL_DISMISSED_KEY, '1');
+                updateAuthUi();
+            });
+        }
+
+        window.toggleMenu = function () {
             const sidebar = document.getElementById('sidebar');
             const menuIcon = document.getElementById('menuIcon');
             const overlay = document.getElementById('overlay');
@@ -76,6 +148,17 @@
             menuIcon.classList.toggle('rotated');
             overlay.classList.toggle('active');
         }
+
+        window.startChat = function (charId) {
+            window.location.href = `/chat.html?id=${charId}`;
+        }
+
+        updateAuthUi();
+        initAuthModal();
+    </script>
+
+    <script type="module">
+        import { getCachedUser } from '/js/auth.js';
 
         // Загрузка персонажей
         document.addEventListener('DOMContentLoaded', async () => {
@@ -110,8 +193,12 @@
             }
         });
 
-        function startChat(charId) {
-            alert(`Starting chat with character ID: ${charId}`);
+        window.startChat = function (charId) {
+            if (!getCachedUser()) {
+                window.location.href = '/login.html';
+                return;
+            }
+            window.location.href = `/chat.html?id=${charId}`;
         }
     </script>
 </body>
