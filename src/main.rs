@@ -139,7 +139,7 @@ const ALLOWED_VIOLENCE_LEVELS: [&str; 3] = ["mild", "medium", "graphic"];
 
 async fn create_character_handler(
     State(state): State<AppState>,
-    Extension(_user): Extension<AuthUser>,
+    Extension(user): Extension<AuthUser>,
     Json(payload): Json<CreateCharacterRequest>,
 ) -> Result<Json<model::RpCharacter>, StatusCode> {
     if payload.name.trim().is_empty() || payload.internal_prompt.trim().is_empty() {
@@ -157,6 +157,7 @@ async fn create_character_handler(
     let _ = ALLOWED_LANGUAGES; // зарезервировано, если позже захотим строгую валидацию ru/en
 
     match state.db.create_character(
+        &_user.id_token,
         &payload.name,
         &payload.avatar_url,
         &payload.description,
@@ -178,7 +179,7 @@ async fn get_chat_history_handler(
     Extension(user): Extension<AuthUser>,
     Path(char_id): Path<String>,
 ) -> Result<Json<Vec<Message>>, StatusCode> {
-    match state.db.get_chat_history(&char_id, &user.uid).await {
+    match state.db.get_chat_history(&user.id_token, &char_id, &user.uid).await {
         Ok(history) => Ok(Json(history)),
         Err(e) => {
             eprintln!("❌ Ошибка при получении истории чата: {}", e);
@@ -205,7 +206,7 @@ async fn send_chat_message_handler(
     })?;
 
     // 2. Достаём историю чата этого пользователя с персонажем
-    let history = state.db.get_chat_history(&char_id, &user.uid).await.unwrap_or_default();
+    let history = state.db.get_chat_history(&user.id_token, &char_id, &user.uid).await.unwrap_or_default();
 
     let language_instruction = match character.language.as_str() {
         "ru" => "Отвечай строго на русском языке.".to_string(),
@@ -241,18 +242,17 @@ async fn send_chat_message_handler(
     })?;
 
     // 4. Сохраняем оба сообщения в историю
-    if let Err(e) = state.db.save_message(&char_id, &user.uid, "user", &payload.message).await {
+    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
         eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
     }
-    if let Err(e) = state.db.save_message(&char_id, &user.uid, "assistant", &reply).await {
+    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "assistant", &reply).await {
         eprintln!("⚠️ Не удалось сохранить ответ ассистента: {}", e);
     }
 
     // 5. Инкрементируем счётчик сообщений персонажа
-    if let Err(e) = state.db.increment_message_count(&char_id).await {
+    if let Err(e) = state.db.increment_message_count(&user.id_token, &char_id).await {
         eprintln!("⚠️ Не удалось обновить счётчик сообщений: {}", e);
     }
-
     Ok(Json(ChatMessageResponse { reply }))
 }
 
