@@ -532,6 +532,40 @@ body {
     text-align: center;
 }
 
+.form-group select {
+    width: 100%;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    padding: 10px 14px;
+    border-radius: 8px;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="file"] {
+    width: 100%;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.language-other-input {
+    margin-top: 10px;
+}
+
+.avatar-preview {
+    margin-top: 12px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--hover-bg);
+}
+
 
 /* --- Страница входа (login.html) --- */
 .login-page {
