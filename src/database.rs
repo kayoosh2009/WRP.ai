@@ -150,6 +150,7 @@ impl FirestoreDb {
     /// Создать нового RP-персонажа. ID генерируется автоматически Firestore.
     pub async fn create_character(
         &self,
+        id_token: &str,
         name: &str,
         avatar_url: &str,
         description: &str,
@@ -173,7 +174,12 @@ impl FirestoreDb {
 
         println!("🆕 [DB] Создаю нового персонажа: {}", name);
 
-        let response = self.client.post(&url).json(&body).send().await?;
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
 
         if !response.status().is_success() {
             let err_text = response.text().await?;
@@ -192,6 +198,7 @@ impl FirestoreDb {
     /// Сохранить одно сообщение в историю чата пользователя с персонажем
     pub async fn save_message(
         &self,
+        id_token: &str,
         char_id: &str,
         uid: &str,
         role: &str,
@@ -218,7 +225,12 @@ impl FirestoreDb {
             }
         });
 
-        let response = self.client.post(&url).json(&body).send().await?;
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
 
         if !response.status().is_success() {
             let err_text = response.text().await?;

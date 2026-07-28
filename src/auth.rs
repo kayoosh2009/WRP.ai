@@ -45,6 +45,7 @@ pub struct AuthUser {
     pub email: Option<String>,
     pub name: Option<String>,
     pub picture: Option<String>,
+    pub id_token: String,
 }
 
 struct CertsCache {
@@ -114,6 +115,7 @@ pub async fn verify_firebase_token(
         email: claims.email,
         name: claims.name,
         picture: claims.picture,
+        id_token: String::new(), // заполнится в require_auth
     })
 }
 
@@ -134,7 +136,8 @@ pub async fn require_auth(
     };
 
     match verify_firebase_token(&state.http_client, state.db.project_id(), token).await {
-        Ok(user) => {
+        Ok(mut user) => {
+            user.id_token = token.to_string();
             req.extensions_mut().insert(user);
             Ok(next.run(req).await)
         }
