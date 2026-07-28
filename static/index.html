@@ -191,13 +191,11 @@
                     if ((index + 1) % AD_EVERY_N_CARDS === 0) {
                         const adSlot = document.createElement('div');
                         adSlot.className = 'ad-slot';
-
-                    <div id="frame" style="width: 300px;margin: auto;z-index: 99998;height: auto">
-                    <iframe data-aa='2449645' src='//ad.a-ads.com/2449645/?size=300x250&background_color=2A2529&title_color=F3F0E7&title_hover_color=dac5da'
-                                        style='border:0; padding:0; width:300px; height:250px; overflow:hidden;display: block;margin: auto'></iframe>
-                    </div>
                         adSlot.innerHTML = `
-                            <iframe data-aa='YOUR_AD_UNIT_ID' src='//ad.a-ads.com/YOUR_AD_UNIT_ID?size=300x250' style='width:300px; height:250px; border:0; padding:0; overflow:hidden; background-color: transparent;' scrolling='no'></iframe>
+                            <div id="frame" style="width: 300px; margin: auto; z-index: 99998; height: auto">
+                                <iframe data-aa='2449645' src='//ad.a-ads.com/2449645/?size=300x250&background_color=2A2529&title_color=F3F0E7&title_hover_color=dac5da'
+                                    style='border:0; padding:0; width:300px; height:250px; overflow:hidden; display:block; margin:auto'></iframe>
+                            </div>
                         `;
                         grid.appendChild(adSlot);
                     }
