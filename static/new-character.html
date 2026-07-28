@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — New Character</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" class="back-link">← Back</a>
+            <div class="logo">WRP.ai</div>
+        </div>
+    </header>
+
+    <div class="form-page">
+        <div class="form-card">
+            <h2>Create a new character</h2>
+            <p class="form-subtitle">Fill in the details below. Fields marked with * are required.</p>
+
+            <form id="newCharacterForm">
+                <div class="form-group">
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" name="name" placeholder="e.g. Aria the Sorceress" required maxlength="80">
+                </div>
+
+                <div class="form-group">
+                    <label for="avatar_url">Avatar image URL</label>
+                    <input type="url" id="avatar_url" name="avatar_url" placeholder="https://example.com/avatar.png">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Short description shown on the character card" required maxlength="300"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="internal_prompt">Character prompt *</label>
+                    <p class="field-hint">
+                        This is the hidden system prompt that defines how the character behaves.
+                        Describe their personality, speaking style, background, and any rules for how they should respond.
+                    </p>
+                    <p class="field-example">
+                        Example: "You are Aria, a witty and confident sorceress from a floating city.
+                        You speak with dry humor, are fiercely loyal to your friends, and always
+                        answer in character. Never break the fourth wall or mention you are an AI."
+                    </p>
+                    <textarea id="internal_prompt" name="internal_prompt" rows="6" placeholder="You are [name], a..." required maxlength="4000"></textarea>
+                </div>
+
+                <p id="formError" class="form-error" hidden></p>
+
+                <button type="submit" id="submitBtn" class="submit-btn">Create character</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuthOrRedirect, getFreshIdToken } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+        if (user) {
+            const form = document.getElementById('newCharacterForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const errorEl = document.getElementById('formError');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                errorEl.hidden = true;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating...';
+
+                const payload = {
+                    name: document.getElementById('name').value.trim(),
+                    avatar_url: document.getElementById('avatar_url').value.trim(),
+                    description: document.getElementById('description').value.trim(),
+                    internal_prompt: document.getElementById('internal_prompt').value.trim(),
+                };
+
+                try {
+                    const token = await getFreshIdToken();
+                    const response = await fetch('/api/characters', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                    const character = await response.json();
+                    window.location.href = `/chat.html?id=${character.id}`;
+                } catch (err) {
+                    console.error('Error creating character:', err);
+                    errorEl.textContent = 'Failed to create character. Please try again.';
+                    errorEl.hidden = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create character';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
