@@ -84,6 +84,8 @@ impl FirestoreDb {
             description: get_string_field(&doc.fields, "description")?,
             internal_prompt: get_string_field(&doc.fields, "internal_prompt")?,
             message_count: get_integer_field(&doc.fields, "message_count").unwrap_or(0) as u64,
+            language: get_string_field(&doc.fields, "language").unwrap_or_else(|_| "en".to_string()),
+            violence_level: get_string_field(&doc.fields, "violence_level").unwrap_or_else(|_| "mild".to_string()),
         })
     }
 
@@ -152,6 +154,8 @@ impl FirestoreDb {
         avatar_url: &str,
         description: &str,
         internal_prompt: &str,
+        language: &str,
+        violence_level: &str,
     ) -> Result<RpCharacter, Box<dyn std::error::Error>> {
         let url = format!("{}/characters?key={}", self.base_url(), self.api_key);
 
@@ -161,7 +165,9 @@ impl FirestoreDb {
                 "avatar_url": { "stringValue": avatar_url },
                 "description": { "stringValue": description },
                 "internal_prompt": { "stringValue": internal_prompt },
-                "message_count": { "integerValue": "0" }
+                "message_count": { "integerValue": "0" },
+                "language": { "stringValue": language },
+                "violence_level": { "stringValue": violence_level }
             }
         });
 

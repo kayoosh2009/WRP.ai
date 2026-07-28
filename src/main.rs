@@ -75,6 +75,8 @@ struct CreateCharacterRequest {
     avatar_url: String,
     description: String,
     internal_prompt: String,
+    language: String,
+    violence_level: String,
 }
 
 #[derive(Deserialize)]
@@ -132,7 +134,9 @@ async fn get_character_handler(
     }
 }
 
-// POST /api/characters — создание нового персонажа (требует авторизации)
+const ALLOWED_LANGUAGES: [&str; 2] = ["ru", "en"];
+const ALLOWED_VIOLENCE_LEVELS: [&str; 3] = ["mild", "medium", "graphic"];
+
 async fn create_character_handler(
     State(state): State<AppState>,
     Extension(_user): Extension<AuthUser>,
@@ -142,11 +146,23 @@ async fn create_character_handler(
         return Err(StatusCode::BAD_REQUEST);
     }
 
+    // "other" язык разрешаем как есть (произвольная строка от пользователя),
+    // но ru/en должны быть строго нижним регистром, а незнакомые "служебные" значения отсекаем
+    if payload.language.trim().is_empty() || payload.language.len() > 40 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    if !ALLOWED_VIOLENCE_LEVELS.contains(&payload.violence_level.as_str()) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let _ = ALLOWED_LANGUAGES; // зарезервировано, если позже захотим строгую валидацию ru/en
+
     match state.db.create_character(
         &payload.name,
         &payload.avatar_url,
         &payload.description,
         &payload.internal_prompt,
+        &payload.language,
+        &payload.violence_level,
     ).await {
         Ok(character) => Ok(Json(character)),
         Err(e) => {
@@ -191,9 +207,25 @@ async fn send_chat_message_handler(
     // 2. Достаём историю чата этого пользователя с персонажем
     let history = state.db.get_chat_history(&char_id, &user.uid).await.unwrap_or_default();
 
+    let language_instruction = match character.language.as_str() {
+        "ru" => "Отвечай строго на русском языке.".to_string(),
+        "en" => "Respond strictly in English.".to_string(),
+        other => format!("Respond strictly in the following language: {}.", other),
+    };
+
+    let violence_instruction = match character.violence_level.as_str() {
+        "mild" => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
+        "medium" => "Moderate intensity is allowed: conflict and peril are fine, but avoid graphic gore or extreme cruelty.",
+        "graphic" => "Dark and intense themes are allowed, including graphic violence, as fits the narrative.",
+        _ => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
+    };
+
     let settings = GenerationSettings {
         char_prompt: character.internal_prompt.clone(),
-        rules: "Оставайся в роли персонажа, отвечай живо и по существу.".to_string(),
+        rules: format!(
+            "Stay in character, respond naturally and with substance. {} {}",
+            language_instruction, violence_instruction
+        ),
     };
 
     // 3. Генерируем ответ ИИ

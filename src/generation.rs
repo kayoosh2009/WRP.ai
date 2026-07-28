@@ -103,7 +103,7 @@ pub async fn generate_rp_response(
     let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты.")?;
 
     let system_content = format!(
-        "РОЛЬ: {}\n\nПРАВИЛА ОТВЕТА: {}\n\nОтвечай строго на русском языке.",
+        "ROLE: {}\n\nRESPONSE RULES: {}",
         settings.char_prompt, settings.rules
     );
 
