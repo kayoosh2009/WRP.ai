@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Chat</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="chat-page">
+
+    <header class="chat-header">
+        <a href="/" class="back-link">← Back</a>
+        <div class="chat-header-info">
+            <div class="chat-avatar" id="chatAvatar"></div>
+            <div class="chat-header-text">
+                <div class="chat-char-name" id="chatCharName">Loading...</div>
+                <div class="chat-char-meta" id="chatCharMeta"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="chat-messages" id="chatMessages">
+        <p class="loading-text">Loading conversation...</p>
+    </main>
+
+    <form class="chat-input-bar" id="chatForm">
+        <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" maxlength="2000" required>
+        <button type="submit" id="chatSendBtn">Send</button>
+    </form>
+
+    <script type="module">
+        import { requireAuthOrRedirect, getFreshIdToken } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+
+        if (user) {
+            const params = new URLSearchParams(window.location.search);
+            const charId = params.get('id');
+
+            const messagesEl = document.getElementById('chatMessages');
+            const form = document.getElementById('chatForm');
+            const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('chatSendBtn');
+            const avatarEl = document.getElementById('chatAvatar');
+            const nameEl = document.getElementById('chatCharName');
+            const metaEl = document.getElementById('chatCharMeta');
+
+            if (!charId) {
+                window.location.href = '/';
+            }
+
+            function renderMessage(role, content) {
+                const wrapper = document.createElement('div');
+                wrapper.className = `chat-message ${role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`;
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble';
+                bubble.textContent = content;
+                wrapper.appendChild(bubble);
+                messagesEl.appendChild(wrapper);
+            }
+
+            function scrollToBottom() {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+
+            function setLoadingReply(show) {
+                let el = document.getElementById('typingIndicator');
+                if (show) {
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = 'typingIndicator';
+                        el.className = 'chat-message chat-message-assistant';
+                        el.innerHTML = '<div class="chat-bubble chat-typing">...</div>';
+                        messagesEl.appendChild(el);
+                        scrollToBottom();
+                    }
+                } else if (el) {
+                    el.remove();
+                }
+            }
+
+            const violenceLabels = { mild: 'Mild', medium: 'Medium', graphic: 'Graphic' };
+
+            async function loadCharacterAndHistory() {
+                try {
+                    const [charRes, token] = await Promise.all([
+                        fetch(`/api/characters/${charId}`),
+                        getFreshIdToken(),
+                    ]);
+
+                    if (!charRes.ok) throw new Error('Character not found');
+                    const character = await charRes.json();
+
+                    nameEl.textContent = character.name;
+                    metaEl.textContent = `${character.language.toUpperCase()} · ${violenceLabels[character.violence_level] || character.violence_level}`;
+                    if (character.avatar_url) {
+                        avatarEl.style.backgroundImage = `url('${character.avatar_url}')`;
+                    } else {
+                        avatarEl.textContent = character.name.charAt(0).toUpperCase();
+                    }
+
+                    const historyRes = await fetch(`/api/chat/${charId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                    });
+
+                    messagesEl.innerHTML = '';
+
+                    if (historyRes.ok) {
+                        const history = await historyRes.json();
+                        if (history.length === 0) {
+                            messagesEl.innerHTML = '<p class="loading-text">Say hello to start the conversation.</p>';
+                        } else {
+                            history.forEach(msg => renderMessage(msg.role, msg.content));
+                            scrollToBottom();
+                        }
+                    } else {
+                        messagesEl.innerHTML = '<p class="error-text">Failed to load conversation history.</p>';
+                    }
+                } catch (err) {
+                    console.error('Error loading chat:', err);
+                    nameEl.textContent = 'Character not found';
+                    messagesEl.innerHTML = '<p class="error-text">Failed to load this character.</p>';
+                }
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = input.value.trim();
+                if (!text) return;
+
+                const placeholder = messagesEl.querySelector('.loading-text');
+                if (placeholder) placeholder.remove();
+
+                renderMessage('user', text);
+                scrollToBottom();
+                input.value = '';
+                input.disabled = true;
+                sendBtn.disabled = true;
+                setLoadingReply(true);
+
+                try {
+                    const token = await getFreshIdToken();
+                    const response = await fetch(`/api/chat/${charId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ message: text }),
+                    });
+
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                    const data = await response.json();
+                    setLoadingReply(false);
+                    renderMessage('assistant', data.reply);
+                    scrollToBottom();
+                } catch (err) {
+                    console.error('Error sending message:', err);
+                    setLoadingReply(false);
+                    renderMessage('assistant', '⚠️ Failed to get a response. Please try again.');
+                    scrollToBottom();
+                } finally {
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
+                }
+            });
+
+            loadCharacterAndHistory();
+        }
+    </script>
+</body>
+</html>
