@@ -17,6 +17,7 @@
                 <div class="chat-char-meta" id="chatCharMeta"></div>
             </div>
         </div>
+        <button class="settings-btn" id="settingsBtn" title="Chat settings" type="button">⚙</button>
     </header>
 
     <main class="chat-messages" id="chatMessages">
@@ -24,12 +25,37 @@
     </main>
 
     <form class="chat-input-bar" id="chatForm">
-        <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" maxlength="2000" required>
+        <textarea id="chatInput" placeholder="Type a message..." maxlength="2000" rows="1" required></textarea>
         <button type="submit" id="chatSendBtn">Send</button>
     </form>
 
+    <!-- Settings modal -->
+    <div class="modal-overlay" id="settingsModalOverlay">
+        <div class="modal-card settings-card">
+            <h3>Chat settings</h3>
+
+            <div class="settings-group">
+                <label>Response length</label>
+                <div class="settings-options" id="lengthOptions">
+                    <button type="button" class="settings-option" data-value="short">Short</button>
+                    <button type="button" class="settings-option" data-value="medium">Medium</button>
+                    <button type="button" class="settings-option" data-value="long">Long</button>
+                </div>
+            </div>
+
+            <div class="settings-group settings-toggle-row">
+                <label for="typingEffectToggle">Live typing effect</label>
+                <input type="checkbox" id="typingEffectToggle">
+            </div>
+
+            <button type="button" class="modal-btn-primary" id="settingsCloseBtn">Done</button>
+        </div>
+    </div>
+
     <script type="module">
         import { requireAuthOrRedirect, getFreshIdToken } from '/js/auth.js';
+        import { getSettings, saveSettings } from '/js/settings.js';
+        import { renderLiteMarkdown } from '/js/markdown.js';
 
         const user = requireAuthOrRedirect();
 
@@ -49,18 +75,85 @@
                 window.location.href = '/';
             }
 
+            // --- Settings modal ---
+            let settings = getSettings();
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsOverlay = document.getElementById('settingsModalOverlay');
+            const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+            const lengthOptions = document.querySelectorAll('#lengthOptions .settings-option');
+            const typingEffectToggle = document.getElementById('typingEffectToggle');
+
+            function refreshSettingsUi() {
+                lengthOptions.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.value === settings.responseLength);
+                });
+                typingEffectToggle.checked = settings.typingEffect;
+            }
+
+            settingsBtn.addEventListener('click', () => {
+                refreshSettingsUi();
+                settingsOverlay.classList.add('active');
+            });
+
+            settingsCloseBtn.addEventListener('click', () => {
+                settingsOverlay.classList.remove('active');
+            });
+
+            lengthOptions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    settings.responseLength = btn.dataset.value;
+                    saveSettings(settings);
+                    refreshSettingsUi();
+                });
+            });
+
+            typingEffectToggle.addEventListener('change', () => {
+                settings.typingEffect = typingEffectToggle.checked;
+                saveSettings(settings);
+            });
+
+            // --- Messages rendering ---
             function renderMessage(role, content) {
                 const wrapper = document.createElement('div');
                 wrapper.className = `chat-message ${role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`;
                 const bubble = document.createElement('div');
                 bubble.className = 'chat-bubble';
-                bubble.textContent = content;
+                bubble.innerHTML = renderLiteMarkdown(content);
                 wrapper.appendChild(bubble);
                 messagesEl.appendChild(wrapper);
+                return bubble;
             }
 
             function scrollToBottom() {
                 messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+
+            // Имитация "живой" печати: раскрываем текст по кусочкам во времени.
+            // Это не настоящий stream от модели, просто визуальный эффект.
+            function typeOutMessage(bubble, fullHtmlText, plainLength) {
+                return new Promise(resolve => {
+                    if (!settings.typingEffect) {
+                        bubble.innerHTML = fullHtmlText;
+                        resolve();
+                        return;
+                    }
+                    // Печатаем по символам исходного текста, рендеря маркдаун на лету
+                    let shown = 0;
+                    const totalMs = Math.min(1800, Math.max(300, plainLength * 12));
+                    const stepMs = Math.max(8, totalMs / plainLength);
+
+                    const raw = bubble.dataset.raw || '';
+                    const interval = setInterval(() => {
+                        shown++;
+                        bubble.innerHTML = renderLiteMarkdown(raw.slice(0, shown)) + '<span class="typing-cursor">▍</span>';
+                        scrollToBottom();
+                        if (shown >= raw.length) {
+                            clearInterval(interval);
+                            bubble.innerHTML = renderLiteMarkdown(raw);
+                            resolve();
+                        }
+                    }, stepMs);
+                });
             }
 
             function setLoadingReply(show) {
@@ -123,8 +216,7 @@
                 }
             }
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            async function sendMessage() {
                 const text = input.value.trim();
                 if (!text) return;
 
@@ -134,6 +226,7 @@
                 renderMessage('user', text);
                 scrollToBottom();
                 input.value = '';
+                autoResize();
                 input.disabled = true;
                 sendBtn.disabled = true;
                 setLoadingReply(true);
@@ -146,14 +239,18 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`,
                         },
-                        body: JSON.stringify({ message: text }),
+                        body: JSON.stringify({ message: text, response_length: settings.responseLength }),
                     });
 
                     if (!response.ok) throw new Error(`Server responded with ${response.status}`);
 
                     const data = await response.json();
                     setLoadingReply(false);
-                    renderMessage('assistant', data.reply);
+
+                    const bubble = renderMessage('assistant', '');
+                    bubble.dataset.raw = data.reply;
+                    bubble.innerHTML = '';
+                    await typeOutMessage(bubble, renderLiteMarkdown(data.reply), data.reply.length);
                     scrollToBottom();
                 } catch (err) {
                     console.error('Error sending message:', err);
@@ -165,6 +262,30 @@
                     sendBtn.disabled = false;
                     input.focus();
                 }
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                sendMessage();
+            });
+
+            // Автоувеличение textarea по высоте контента
+            function autoResize() {
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+            }
+            input.addEventListener('input', autoResize);
+
+            // Enter/Shift+Enter только на устройствах с клавиатурой (не touch).
+            // На тач-устройствах Enter просто переносит строку, отправка — только кнопкой.
+            const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+                // Shift+Enter и обычный Enter на тач-устройствах — обычный перенос строки, ничего не делаем
             });
 
             loadCharacterAndHistory();

@@ -716,6 +716,129 @@ body {
     }
 }
 
+/* --- Settings button + modal (chat.html) --- */
+.settings-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.settings-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+.settings-card {
+    text-align: left;
+}
+
+.settings-card h3 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.settings-options {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-option {
+    flex: 1;
+    padding: 10px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.settings-option:hover {
+    background-color: var(--hover-bg);
+}
+
+.settings-option.active {
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border-color: var(--text-light);
+    font-weight: bold;
+}
+
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-toggle-row label {
+    margin-bottom: 0;
+}
+
+.settings-toggle-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* --- Chat textarea input (multi-line) --- */
+.chat-input-bar textarea {
+    flex: 1;
+    background-color: var(--card-bg);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    padding: 12px 16px;
+    border-radius: 18px;
+    outline: none;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: none;
+    max-height: 140px;
+    line-height: 1.4;
+}
+
+.chat-input-bar textarea:focus {
+    border-color: var(--text-light);
+}
+
+/* --- Markdown-lite rendering inside bubbles --- */
+.chat-bubble strong {
+    font-weight: bold;
+}
+
+.chat-bubble em {
+    font-style: italic;
+    opacity: 0.9;
+}
+
+.typing-cursor {
+    display: inline-block;
+    animation: blink 0.8s step-start infinite;
+    opacity: 0.7;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
 
 /* --- Страница входа (login.html) --- */
 .login-page {
