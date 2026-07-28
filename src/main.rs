@@ -82,6 +82,12 @@ struct CreateCharacterRequest {
 #[derive(Deserialize)]
 struct ChatMessageRequest {
     message: String,
+    #[serde(default = "default_response_length")]
+    response_length: String,
+}
+
+fn default_response_length() -> String {
+    "medium".to_string()
 }
 
 #[derive(Serialize)]
@@ -221,11 +227,17 @@ async fn send_chat_message_handler(
         _ => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
     };
 
+    let length_instruction = match payload.response_length.as_str() {
+        "short" => "Keep your response very brief: 1-2 short sentences maximum.",
+        "long" => "Write a detailed, immersive response with rich description, at least a few paragraphs.",
+        _ => "Keep your response moderate in length: a short paragraph or two.",
+    };
+
     let settings = GenerationSettings {
         char_prompt: character.internal_prompt.clone(),
         rules: format!(
-            "Stay in character, respond naturally and with substance. {} {}",
-            language_instruction, violence_instruction
+            "Stay in character, respond naturally and with substance. {} {} {} You may use *asterisks* for emphasis/actions in your response, Markdown-lite style.",
+            language_instruction, violence_instruction, length_instruction
         ),
     };
 
