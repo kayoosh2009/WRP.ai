@@ -86,6 +86,37 @@ export async function signOutUser() {
     clearCachedUser();
 }
 
+// Fetch с автоматическим Bearer-токеном и одной попыткой повтора при 401
+// (на случай, если токен успел устареть между получением и отправкой запроса)
+export async function authFetch(url, options = {}) {
+    let token = await getFreshIdToken();
+    let response = await fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    if (response.status === 401) {
+        // Токен мог устареть — форсируем обновление и пробуем ещё раз
+        await initFirebase();
+        await authReady;
+        if (auth.currentUser) {
+            token = await auth.currentUser.getIdToken(true);
+            response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+        }
+    }
+
+    return response;
+}
+
 // Возвращает актуальный idToken (Firebase сам обновит его при необходимости)
 export async function getFreshIdToken() {
     await initFirebase();

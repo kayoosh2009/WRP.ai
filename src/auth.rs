@@ -104,6 +104,7 @@ pub async fn verify_firebase_token(
     let mut validation = Validation::new(Algorithm::RS256);
     validation.set_audience(&[project_id]);
     validation.set_issuer(&[format!("https://securetoken.google.com/{}", project_id)]);
+    validation.leeway = 300; // 5 минут допуска на расхождение часов клиент/сервер
 
     let token_data = decode::<FirebaseClaims>(token, &decoding_key, &validation)
         .map_err(|e| format!("Token verification failed: {}", e))?;
