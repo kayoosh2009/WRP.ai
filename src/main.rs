@@ -258,11 +258,10 @@ async fn send_chat_message_handler(
     let settings = GenerationSettings {
         char_prompt: character.internal_prompt.clone(),
         rules: format!(
-            "Stay in character, respond naturally and with substance. {} {} {} You may use *asterisks* for emphasis/actions in your response, Markdown-lite style.",
+            "Stay in character, respond naturally and with substance. {} {} {} You may use *asterisks* for emphasis/actions, Markdown-lite style. IMPORTANT: never write your response as one dense wall of text — break it into short lines or paragraphs using actual line breaks, separating dialogue, actions, and thoughts onto their own lines where it makes sense.",
             language_instruction, violence_instruction, length_instruction
         ),
     };
-
     // 3. Генерируем ответ ИИ
     let reply = generation::generate_rp_response(
         &state.http_client,
