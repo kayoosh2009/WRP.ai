@@ -7,11 +7,14 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signOut as fbSignOut,
+    onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const STORAGE_KEY = "wrp_auth";
 
 let app, auth;
+let authReadyResolve;
+const authReady = new Promise((resolve) => { authReadyResolve = resolve; });
 
 async function initFirebase() {
     if (app) return app;
@@ -28,6 +31,15 @@ async function initFirebase() {
         appId: cfg.app_id,
     });
     auth = getAuth(app);
+
+    // Ждём первого срабатывания onAuthStateChanged — это значит,
+    // что Firebase закончил восстановление сессии из своего хранилища.
+    // Только после этого auth.currentUser можно доверять.
+    const unsubscribe = onAuthStateChanged(auth, () => {
+        authReadyResolve();
+        unsubscribe();
+    });
+
     return app;
 }
 
@@ -77,11 +89,16 @@ export async function signOutUser() {
 // Возвращает актуальный idToken (Firebase сам обновит его при необходимости)
 export async function getFreshIdToken() {
     await initFirebase();
+    await authReady; // дожидаемся восстановления сессии Firebase после перезагрузки страницы
+
     if (!auth.currentUser) {
-        const cached = getCachedUser();
-        return cached ? cached.idToken : null;
+        // Сессия правда не восстановилась (например, реально разлогинен) —
+        // чистим протухший кэш, чтобы не гонять по кругу с невалидным токеном
+        clearCachedUser();
+        return null;
     }
-    const token = await auth.currentUser.getIdToken();
+
+    const token = await auth.currentUser.getIdToken(); // Firebase сам обновит, если истёк
     const cached = getCachedUser();
     if (cached) {
         cached.idToken = token;
@@ -90,14 +107,29 @@ export async function getFreshIdToken() {
     return token;
 }
 
-// Редирект на /login.html, если пользователь не авторизован
+// Редирект на /login.html, если пользователь не авторизован.
+// Возвращает кэшированный профиль синхронно (для мгновенного рендера),
+// но дополнительно проверяет актуальность сессии в фоне.
 export function requireAuthOrRedirect() {
-    const user = getCachedUser();
-    if (!user) {
+    const cached = getCachedUser();
+    if (!cached) {
         window.location.href = "/login.html";
         return null;
     }
-    return user;
+
+    // Асинхронно подтверждаем, что сессия Firebase реально жива.
+    // Если нет — редиректим постфактум (страница уже могла отрендериться,
+    // но следующий защищённый запрос всё равно был бы отклонён с 401).
+    (async () => {
+        await initFirebase();
+        await authReady;
+        if (!auth.currentUser) {
+            clearCachedUser();
+            window.location.href = "/login.html";
+        }
+    })();
+
+    return cached;
 }
 
 initFirebase().catch((e) => console.error("Firebase init error:", e));
