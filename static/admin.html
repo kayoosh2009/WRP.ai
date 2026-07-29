@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" class="back-link">← Back</a>
+            <div class="logo">WRP.ai Admin</div>
+        </div>
+    </header>
+
+    <div class="admin-page">
+        <div id="accessDenied" class="form-card" hidden>
+            <h2>Access denied</h2>
+            <p class="form-subtitle">This page is only available to the site administrator.</p>
+        </div>
+
+        <div id="adminContent" hidden>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statCharacters">—</div>
+                    <div class="stat-label">Characters</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statMessages">—</div>
+                    <div class="stat-label">Total messages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statComments">—</div>
+                    <div class="stat-label">Comments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPopular">—</div>
+                    <div class="stat-label">Most popular</div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <h2>Manage characters</h2>
+                <div id="adminCharactersList" class="admin-characters-list">
+                    <p class="loading-text">Loading characters...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getCachedUser, authFetch } from '/js/auth.js';
+
+        const ADMIN_EMAIL = 'kayoosh2009@gmail.com';
+        const user = getCachedUser();
+
+        const accessDenied = document.getElementById('accessDenied');
+        const adminContent = document.getElementById('adminContent');
+
+        if (!user || user.profile.email !== ADMIN_EMAIL) {
+            // Клиентская проверка — просто для UX, реальная защита на backend через require_admin
+            accessDenied.hidden = false;
+        } else {
+            adminContent.hidden = false;
+            loadStats();
+            loadCharacters();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await authFetch('/api/admin/stats');
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                const stats = await res.json();
+
+                document.getElementById('statCharacters').textContent = stats.total_characters;
+                document.getElementById('statMessages').textContent = stats.total_messages;
+                document.getElementById('statComments').textContent = stats.total_comments;
+                document.getElementById('statPopular').textContent = stats.most_popular
+                    ? stats.most_popular.name
+                    : '—';
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
+        }
+
+        async function loadCharacters() {
+            const list = document.getElementById('adminCharactersList');
+            try {
+                const res = await fetch('/api/characters');
+                if (!res.ok) throw new Error('Failed to load characters');
+                const characters = await res.json();
+
+                if (characters.length === 0) {
+                    list.innerHTML = '<p class="loading-text">No characters yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                characters.forEach(char => {
+                    const row = document.createElement('div');
+                    row.className = 'admin-char-row';
+                    row.innerHTML = `
+                        <div class="admin-char-avatar" style="background-image: url('${char.avatar_url || ''}');"></div>
+                        <div class="admin-char-info">
+                            <div class="admin-char-name">${char.name}</div>
+                            <div class="admin-char-meta">💬 ${char.message_count} messages · ${char.language} · ${char.violence_level}</div>
+                        </div>
+                        <button class="admin-delete-btn" data-id="${char.id}">Delete</button>
+                    `;
+                    list.appendChild(row);
+                });
+
+                list.querySelectorAll('.admin-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const charId = btn.dataset.id;
+                        if (!confirm('Delete this character? This cannot be undone.')) return;
+
+                        btn.disabled = true;
+                        btn.textContent = 'Deleting...';
+                        try {
+                            const res = await authFetch(`/api/admin/characters/${charId}`, { method: 'DELETE' });
+                            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                            btn.closest('.admin-char-row').remove();
+                            loadStats();
+                        } catch (err) {
+                            console.error('Error deleting character:', err);
+                            alert('Failed to delete character.');
+                            btn.disabled = false;
+                            btn.textContent = 'Delete';
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error('Error loading characters:', err);
+                list.innerHTML = '<p class="error-text">Failed to load characters.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

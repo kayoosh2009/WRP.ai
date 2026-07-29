@@ -1003,6 +1003,103 @@ body {
     white-space: pre-wrap;
 }
 
+/* --- Admin page --- */
+.admin-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 100px 20px 60px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.admin-characters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.admin-char-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    background-color: var(--bg-dark);
+    border-radius: 10px;
+}
+
+.admin-char-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background-color: var(--hover-bg);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.admin-char-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-char-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.admin-char-meta {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+}
+
+.admin-delete-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: opacity 0.2s;
+}
+
+.admin-delete-btn:hover {
+    opacity: 0.85;
+}
+
+.admin-delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* --- Страница входа (login.html) --- */
 .login-page {
     display: flex;
