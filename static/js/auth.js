@@ -98,7 +98,7 @@ export async function getFreshIdToken() {
         return null;
     }
 
-    const token = await auth.currentUser.getIdToken(); // Firebase сам обновит, если истёк
+    const token = await auth.currentUser.getIdToken(true); // forceRefresh=true — не доверяем локальному кэшу, всегда спрашиваем у Firebase свежий токен
     const cached = getCachedUser();
     if (cached) {
         cached.idToken = token;
