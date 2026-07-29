@@ -5,7 +5,7 @@ mod auth;
 
 use axum::{
     extract::{State, Path, Extension},
-    routing::{get, post},
+    routing::{get, post, delete},
     middleware,
     http::StatusCode,
     Json, Router,
@@ -49,17 +49,26 @@ async fn main() {
         .route("/api/characters", post(create_character_handler))
         .route("/api/chat/:char_id", get(get_chat_history_handler).post(send_chat_message_handler))
         .route("/api/me", get(get_me_handler))
+        .route("/api/comments", post(add_comment_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_auth));
+
+    // Роуты только для админа
+    let admin_routes = Router::new()
+        .route("/api/admin/stats", get(get_admin_stats_handler))
+        .route("/api/admin/characters/:char_id", delete(delete_character_handler))
+        .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_admin));
 
     // Публичные роуты
     let public_routes = Router::new()
         .route("/api/characters", get(get_characters_handler))
         .route("/api/characters/:char_id", get(get_character_handler))
-        .route("/api/firebase-config", get(get_firebase_config_handler));
+        .route("/api/firebase-config", get(get_firebase_config_handler))
+        .route("/api/comments", get(get_comments_handler));
 
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
+        .merge(admin_routes)
         // Fallback для раздачи статики (должен быть в конце)
         .fallback_service(serve_static)
         .with_state(shared_state);
