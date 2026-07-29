@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Support the project</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" class="back-link">← Back</a>
+            <div class="logo">WRP.ai</div>
+        </div>
+    </header>
+
+    <div class="form-page">
+        <div class="form-card">
+            <h2>Support WRP.ai</h2>
+            <p class="form-subtitle">If you enjoy the project, consider supporting its development. Every bit helps keep the servers running.</p>
+
+            <div class="donate-section">
+                <a href="https://www.buymeacoffee.com/YOUR_USERNAME" target="_blank" class="donate-coffee-btn">
+                    <img src="img/coffee.png" alt="Buy me a coffee" class="donate-icon">
+                    <span>Buy me a coffee</span>
+                </a>
+            </div>
+
+            <div class="donate-section">
+                <h3>Crypto</h3>
+
+                <div class="crypto-row">
+                    <img src="img/btc.png" alt="Bitcoin" class="donate-icon">
+                    <div class="crypto-info">
+                        <span class="crypto-label">Bitcoin (BTC)</span>
+                        <code class="crypto-address" id="btcAddress">your_btc_address_here</code>
+                    </div>
+                    <button class="copy-btn" data-copy-target="btcAddress">Copy</button>
+                </div>
+
+                <div class="crypto-row">
+                    <img src="img/sol.png" alt="Solana" class="donate-icon">
+                    <div class="crypto-info">
+                        <span class="crypto-label">Solana (SOL)</span>
+                        <code class="crypto-address" id="solAddress">your_solana_address_here</code>
+                    </div>
+                    <button class="copy-btn" data-copy-target="solAddress">Copy</button>
+                </div>
+
+                <div class="crypto-row">
+                    <img src="img/usdt.png" alt="USDT" class="donate-icon">
+                    <div class="crypto-info">
+                        <span class="crypto-label">USDT (TRC20)</span>
+                        <code class="crypto-address" id="usdtAddress">your_usdt_trc20_address_here</code>
+                    </div>
+                    <button class="copy-btn" data-copy-target="usdtAddress">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-card comments-card">
+            <h2>Leave feedback</h2>
+            <p class="form-subtitle">Share your thoughts about the project.</p>
+
+            <div id="commentForm">
+                <textarea id="commentInput" rows="3" maxlength="500" placeholder="Write a comment..."></textarea>
+                <button id="commentSubmitBtn" class="submit-btn">Post comment</button>
+                <p id="commentError" class="form-error" hidden></p>
+                <p id="commentLoginHint" class="field-hint" hidden>
+                    <a href="/login.html">Sign in</a> to leave a comment.
+                </p>
+            </div>
+
+            <div id="commentsList" class="comments-list">
+                <p class="loading-text">Loading comments...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getCachedUser, authFetch } from '/js/auth.js';
+
+        // Копирование адресов кошельков
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = document.getElementById(btn.dataset.copyTarget);
+                navigator.clipboard.writeText(target.textContent.trim()).then(() => {
+                    const original = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = original; }, 1500);
+                });
+            });
+        });
+
+        // Комментарии
+        const commentsList = document.getElementById('commentsList');
+        const commentInput = document.getElementById('commentInput');
+        const commentSubmitBtn = document.getElementById('commentSubmitBtn');
+        const commentError = document.getElementById('commentError');
+        const commentLoginHint = document.getElementById('commentLoginHint');
+        const commentForm = document.getElementById('commentForm');
+
+        const user = getCachedUser();
+        if (!user) {
+            commentInput.hidden = true;
+            commentSubmitBtn.hidden = true;
+            commentLoginHint.hidden = false;
+        }
+
+        function renderComments(comments) {
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<p class="loading-text">No comments yet. Be the first!</p>';
+                return;
+            }
+            commentsList.innerHTML = '';
+            comments.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'comment-item';
+                const date = new Date(c.timestamp).toLocaleDateString();
+                item.innerHTML = `
+                    <div class="comment-header">
+                        <span class="comment-name">${c.name}</span>
+                        <span class="comment-date">${date}</span>
+                    </div>
+                    <p class="comment-text"></p>
+                `;
+                item.querySelector('.comment-text').textContent = c.text;
+                commentsList.appendChild(item);
+            });
+        }
+
+        async function loadComments() {
+            try {
+                const res = await fetch('/api/comments');
+                if (!res.ok) throw new Error('Failed to load comments');
+                const comments = await res.json();
+                renderComments(comments);
+            } catch (err) {
+                console.error(err);
+                commentsList.innerHTML = '<p class="error-text">Failed to load comments.</p>';
+            }
+        }
+
+        if (user) {
+            commentSubmitBtn.addEventListener('click', async () => {
+                const text = commentInput.value.trim();
+                commentError.hidden = true;
+                if (!text) return;
+
+                commentSubmitBtn.disabled = true;
+                try {
+                    const res = await authFetch('/api/comments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text }),
+                    });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    commentInput.value = '';
+                    await loadComments();
+                } catch (err) {
+                    console.error(err);
+                    commentError.textContent = 'Failed to post comment. Please try again.';
+                    commentError.hidden = false;
+                } finally {
+                    commentSubmitBtn.disabled = false;
+                }
+            });
+        }
+
+        loadComments();
+    </script>
+</body>
+</html>
