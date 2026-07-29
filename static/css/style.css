@@ -850,6 +850,22 @@ body {
     min-height: 250px;
 }
 
+/* --- Top banner ad (index.html) --- */
+.top-ad-banner {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+    .top-ad-banner {
+        transform: scale(0.85);
+        transform-origin: top center;
+        margin-bottom: 8px;
+    }
+}
+
 
 /* --- Страница входа (login.html) --- */
 .login-page {
