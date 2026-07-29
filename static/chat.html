@@ -176,10 +176,7 @@
 
             async function loadCharacterAndHistory() {
                 try {
-                    const [charRes, token] = await Promise.all([
-                        fetch(`/api/characters/${charId}`),
-                        getFreshIdToken(),
-                    ]);
+                    const charRes = await fetch(`/api/characters/${charId}`);
 
                     if (!charRes.ok) throw new Error('Character not found');
                     const character = await charRes.json();
@@ -192,9 +189,7 @@
                         avatarEl.textContent = character.name.charAt(0).toUpperCase();
                     }
 
-                    const historyRes = await fetch(`/api/chat/${charId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` },
-                    });
+                    const historyRes = await authFetch(`/api/chat/${charId}`);
 
                     messagesEl.innerHTML = '';
 
@@ -230,15 +225,11 @@
                 input.disabled = true;
                 sendBtn.disabled = true;
                 setLoadingReply(true);
-
+                
                 try {
-                    const token = await getFreshIdToken();
-                    const response = await fetch(`/api/chat/${charId}`, {
+                    const response = await authFetch(`/api/chat/${charId}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ message: text, response_length: settings.responseLength }),
                     });
 
