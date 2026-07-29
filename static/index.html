@@ -51,8 +51,15 @@
                         <img src="img/add.png" alt="Add" class="nav-icon"> 
                         <span>Add character</span>
                     </a>
+                    <a href="/donate.html" class="nav-item">
+                        <img src="img/donate.png" alt="Donate" class="nav-icon"> 
+                        <span>Donate</span>
+                    </a>
+                    <a href="/admin.html" class="nav-item" id="adminNavLink" hidden>
+                        <img src="img/admin.png" alt="Admin" class="nav-icon"> 
+                        <span>Admin Panel</span>
+                    </a>
                 </nav>
-
                 <a href="https://t.me/kayoosh_channel" target="_blank" class="telegram-btn">
                     <img src="img/telegram.png" alt="Telegram" class="nav-icon">
                     <span>Subscribe to dev's Telegram</span>
@@ -160,8 +167,15 @@
             window.location.href = `/chat.html?id=${charId}`;
         }
 
+        function updateAdminNav() {
+            const user = getCachedUser();
+            const adminLink = document.getElementById('adminNavLink');
+            adminLink.hidden = !(user && user.profile.email === 'kayoosh2009@gmail.com');
+        }
+
         updateAuthUi();
         initAuthModal();
+        updateAdminNav();
     </script>
 
     <script type="module">
