@@ -112,6 +112,19 @@ struct MeResponse {
     picture: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct AddCommentRequest {
+    text: String,
+}
+
+#[derive(Serialize)]
+struct AdminStatsResponse {
+    total_characters: usize,
+    total_messages: u64,
+    total_comments: usize,
+    most_popular: Option<model::RpCharacter>,
+}
+
 #[derive(Serialize)]
 struct FirebaseConfigResponse {
     api_key: String,
@@ -300,4 +313,76 @@ async fn get_firebase_config_handler() -> Json<FirebaseConfigResponse> {
         messaging_sender_id: std::env::var("FIREBASE_MESSAGING_SENDER_ID").unwrap_or_default(),
         app_id: std::env::var("FIREBASE_APP_ID").unwrap_or_default(),
     })
+}
+
+// GET /api/comments — публичный список комментариев о проекте
+async fn get_comments_handler(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<model::Comment>>, StatusCode> {
+    match state.db.get_comments().await {
+        Ok(comments) => Ok(Json(comments)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении комментариев: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// POST /api/comments — оставить комментарий (требует авторизации)
+async fn add_comment_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Json(payload): Json<AddCommentRequest>,
+) -> Result<StatusCode, StatusCode> {
+    let text = payload.text.trim();
+    if text.is_empty() || text.len() > 500 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let name = user.name.clone().unwrap_or_else(|| "Anonymous".to_string());
+
+    match state.db.add_comment(&user.id_token, &user.uid, &name, text).await {
+        Ok(_) => Ok(StatusCode::CREATED),
+        Err(e) => {
+            eprintln!("❌ Ошибка при добавлении комментария: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// GET /api/admin/stats — сводная статистика (только для админа)
+async fn get_admin_stats_handler(
+    State(state): State<AppState>,
+) -> Result<Json<AdminStatsResponse>, StatusCode> {
+    let characters = state.db.get_all_characters().await.map_err(|e| {
+        eprintln!("❌ Ошибка при получении статистики (персонажи): {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let comments = state.db.get_comments().await.unwrap_or_default();
+
+    let total_messages: u64 = characters.iter().map(|c| c.message_count).sum();
+    let most_popular = characters.iter().max_by_key(|c| c.message_count).cloned();
+
+    Ok(Json(AdminStatsResponse {
+        total_characters: characters.len(),
+        total_messages,
+        total_comments: comments.len(),
+        most_popular,
+    }))
+}
+
+// DELETE /api/admin/characters/:char_id — удалить персонажа (только для админа)
+async fn delete_character_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+) -> Result<StatusCode, StatusCode> {
+    match state.db.delete_character(&user.id_token, &char_id).await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            eprintln!("❌ Ошибка при удалении персонажа: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
