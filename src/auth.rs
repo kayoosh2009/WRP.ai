@@ -16,6 +16,8 @@ use crate::AppState;
 const GOOGLE_JWKS_URL: &str =
     "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
+const ADMIN_EMAIL: &str = "kayoosh2009@gmail.com";
+
 #[derive(Deserialize, Debug, Clone)]
 struct Jwk {
     kid: String,
@@ -144,6 +146,39 @@ pub async fn require_auth(
         }
         Err(e) => {
             eprintln!("❌ Auth error: {}", e);
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    }
+}
+
+/// Как require_auth, но дополнительно требует, чтобы email совпадал с ADMIN_EMAIL
+pub async fn require_admin(
+    State(state): State<AppState>,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let auth_header = req
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok());
+
+    let token = match auth_header {
+        Some(h) if h.starts_with("Bearer ") => &h[7..],
+        _ => return Err(StatusCode::UNAUTHORIZED),
+    };
+
+    match verify_firebase_token(&state.http_client, state.db.project_id(), token).await {
+        Ok(mut user) => {
+            if user.email.as_deref() != Some(ADMIN_EMAIL) {
+                eprintln!("⛔ Попытка доступа в админку не тем email: {:?}", user.email);
+                return Err(StatusCode::FORBIDDEN);
+            }
+            user.id_token = token.to_string();
+            req.extensions_mut().insert(user);
+            Ok(next.run(req).await)
+        }
+        Err(e) => {
+            eprintln!("❌ Auth error (admin): {}", e);
             Err(StatusCode::UNAUTHORIZED)
         }
     }
