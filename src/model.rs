@@ -1,6 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Comment {
+    pub uid: String,
+    pub name: String,
+    pub text: String,
+    pub timestamp: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RpCharacter {
     pub id: String,
     pub name: String,

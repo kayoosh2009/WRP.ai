@@ -1,7 +1,7 @@
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
-use crate::model::RpCharacter;
+use crate::model::{RpCharacter, Comment};
 use crate::generation::Message;
 
 pub struct FirestoreDb {
