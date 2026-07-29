@@ -97,6 +97,15 @@ impl FirestoreDb {
         Ok((timestamp, Message { role, content }))
     }
 
+    fn parse_comment(&self, doc: &FirestoreDocument) -> Result<Comment, String> {
+        Ok(Comment {
+            uid: get_string_field(&doc.fields, "uid")?,
+            name: get_string_field(&doc.fields, "name")?,
+            text: get_string_field(&doc.fields, "text")?,
+            timestamp: get_integer_field(&doc.fields, "timestamp").unwrap_or(0),
+        })
+    }
+
     /// Fetch a character from Firestore by their ID
     pub async fn get_character(&self, char_id: &str) -> Result<RpCharacter, Box<dyn std::error::Error>> {
         let url = format!(
@@ -322,5 +331,89 @@ impl FirestoreDb {
         }
 
         Ok(())
+    }
+
+    /// Удалить персонажа (только для админа)
+    pub async fn delete_character(&self, id_token: &str, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("{}/characters/{}?key={}", self.base_url(), char_id, self.api_key);
+
+        let response = self.client
+            .delete(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore DELETE error: {}", err_text).into());
+        }
+
+        Ok(())
+    }
+
+    /// Добавить комментарий о проекте
+    pub async fn add_comment(
+        &self,
+        id_token: &str,
+        uid: &str,
+        name: &str,
+        text: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("{}/comments?key={}", self.base_url(), self.api_key);
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        let body = serde_json::json!({
+            "fields": {
+                "uid": { "stringValue": uid },
+                "name": { "stringValue": name },
+                "text": { "stringValue": text },
+                "timestamp": { "integerValue": timestamp.to_string() }
+            }
+        });
+
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore ADD COMMENT error: {}", err_text).into());
+        }
+
+        Ok(())
+    }
+
+    /// Получить все комментарии (новые сверху)
+    pub async fn get_comments(&self) -> Result<Vec<Comment>, Box<dyn std::error::Error>> {
+        let url = format!("{}/comments?key={}", self.base_url(), self.api_key);
+
+        let response = self.client.get(&url).send().await?;
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(Vec::new());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET COMMENTS error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let mut comments = Vec::new();
+
+        for doc in &list_response.documents {
+            if let Ok(comment) = self.parse_comment(doc) {
+                comments.push(comment);
+            }
+        }
+
+        comments.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)); // новые сверху
+
+        Ok(comments)
     }
 }
