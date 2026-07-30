@@ -799,6 +799,29 @@ body {
     cursor: pointer;
 }
 
+.settings-danger-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: transparent;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    transition: background 0.2s, color 0.2s;
+}
+
+.settings-danger-btn:hover {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.settings-danger-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* --- Chat textarea input (multi-line) --- */
 .chat-input-bar textarea {
     flex: 1;
