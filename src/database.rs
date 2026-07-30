@@ -293,6 +293,58 @@ impl FirestoreDb {
         Ok(messages.into_iter().map(|(_, m)| m).collect())
     }
 
+/// Удалить всю историю чата пользователя с конкретным персонажем
+    pub async fn delete_chat_history(
+        &self,
+        id_token: &str,
+        char_id: &str,
+        uid: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!(
+            "{}/characters/{}/chats/{}/messages?key={}",
+            self.base_url(),
+            char_id,
+            uid,
+            self.api_key
+        );
+
+        let response = self.client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore LIST FOR DELETE error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+
+        for doc in &list_response.documents {
+            let delete_url = format!(
+                "https://firestore.googleapis.com/v1/{}?key={}",
+                doc.name,
+                self.api_key
+            );
+            let del_resp = self.client
+                .delete(&delete_url)
+                .header("Authorization", format!("Bearer {}", id_token))
+                .send()
+                .await?;
+
+            if !del_resp.status().is_success() {
+                let err_text = del_resp.text().await?;
+                eprintln!("⚠️ Не удалось удалить сообщение {}: {}", doc.name, err_text);
+            }
+        }
+
+        Ok(())
+    }
+
     /// Increment the message count for a specific character
     pub async fn increment_message_count(&self, id_token: &str, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         // 1. Read current state to get the existing count

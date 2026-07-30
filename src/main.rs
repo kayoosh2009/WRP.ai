@@ -47,7 +47,7 @@ async fn main() {
     // Роуты, требующие авторизации через Firebase ID-токен
     let protected_routes = Router::new()
         .route("/api/characters", post(create_character_handler))
-        .route("/api/chat/:char_id", get(get_chat_history_handler).post(send_chat_message_handler))
+        .route("/api/chat/:char_id", get(get_chat_history_handler).post(send_chat_message_handler).delete(delete_chat_history_handler))
         .route("/api/me", get(get_me_handler))
         .route("/api/comments", post(add_comment_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_auth));
@@ -211,6 +211,21 @@ async fn get_chat_history_handler(
         Ok(history) => Ok(Json(history)),
         Err(e) => {
             eprintln!("❌ Ошибка при получении истории чата: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// DELETE /api/chat/:char_id — удалить всю историю переписки пользователя с персонажем
+async fn delete_chat_history_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+) -> Result<StatusCode, StatusCode> {
+    match state.db.delete_chat_history(&user.id_token, &char_id, &user.uid).await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            eprintln!("❌ Ошибка при удалении истории чата: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
