@@ -232,32 +232,132 @@
     <script type="module">
         import { getCachedUser } from '/js/auth.js';
 
+        let allCharacters = [];
+        const DESC_LIMIT = 80;
+
+        function renderCharacterCard(char) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+
+            const needsToggle = char.description.length > DESC_LIMIT;
+            const shortDesc = needsToggle ? char.description.substring(0, DESC_LIMIT) + '...' : char.description;
+
+            card.innerHTML = `
+                <div class="card-image" style="background-image: url('${char.avatar_url || 'https://via.placeholder.com/300x200'}');"></div>
+                <div class="card-info">
+                    <h3>${char.name}</h3>
+                    <p class="card-desc">
+                        <span class="desc-short">${shortDesc}</span>
+                        <span class="desc-full" hidden>${char.description}</span>
+                        ${needsToggle ? '<button type="button" class="desc-toggle-btn">more...</button>' : ''}
+                    </p>
+                    <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
+                    <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
+                </div>
+            `;
+
+            if (needsToggle) {
+                const toggleBtn = card.querySelector('.desc-toggle-btn');
+                const shortEl = card.querySelector('.desc-short');
+                const fullEl = card.querySelector('.desc-full');
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isExpanding = fullEl.hidden;
+                    fullEl.hidden = !isExpanding;
+                    shortEl.hidden = isExpanding;
+                    toggleBtn.textContent = isExpanding ? 'less' : 'more...';
+                });
+            }
+
+            return card;
+        }
+
+        function applyFiltersAndRender() {
+            const grid = document.getElementById('character-grid');
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+
+            const checkedViolence = Array.from(document.querySelectorAll('.violenceFilter:checked')).map(cb => cb.value);
+            const checkedLangs = Array.from(document.querySelectorAll('.langFilter:checked')).map(cb => cb.value);
+            const sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
+
+            let filtered = allCharacters.filter(char => {
+                const matchesSearch = !searchTerm ||
+                    char.name.toLowerCase().includes(searchTerm) ||
+                    char.description.toLowerCase().includes(searchTerm);
+
+                const matchesViolence = checkedViolence.includes(char.violence_level);
+
+                const langCategory = (char.language === 'en' || char.language === 'ru') ? char.language : 'other';
+                const matchesLang = checkedLangs.includes(langCategory);
+
+                return matchesSearch && matchesViolence && matchesLang;
+            });
+
+            filtered.sort((a, b) => sortOrder === 'popular'
+                ? b.message_count - a.message_count
+                : a.message_count - b.message_count);
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p class="loading-text">No characters found.</p>';
+                return;
+            }
+            filtered.forEach(char => grid.appendChild(renderCharacterCard(char)));
+        }
+
+        function setupFilterControls() {
+            document.getElementById('searchInput').addEventListener('input', applyFiltersAndRender);
+
+            document.querySelectorAll('input[name="sortOrder"]').forEach(radio => {
+                radio.addEventListener('change', applyFiltersAndRender);
+            });
+
+            const violenceAll = document.getElementById('violenceAll');
+            const violenceCheckboxes = document.querySelectorAll('.violenceFilter');
+            violenceAll.addEventListener('change', () => {
+                violenceCheckboxes.forEach(cb => cb.checked = violenceAll.checked);
+                applyFiltersAndRender();
+            });
+            violenceCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    violenceAll.checked = Array.from(violenceCheckboxes).every(c => c.checked);
+                    applyFiltersAndRender();
+                });
+            });
+
+            const langAll = document.getElementById('langAll');
+            const langCheckboxes = document.querySelectorAll('.langFilter');
+            langAll.addEventListener('change', () => {
+                langCheckboxes.forEach(cb => cb.checked = langAll.checked);
+                applyFiltersAndRender();
+            });
+            langCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    langAll.checked = Array.from(langCheckboxes).every(c => c.checked);
+                    applyFiltersAndRender();
+                });
+            });
+
+            const filterToggleBtn = document.getElementById('filterToggleBtn');
+            const filterPanel = document.getElementById('filterPanel');
+            filterToggleBtn.addEventListener('click', () => {
+                filterPanel.hidden = !filterPanel.hidden;
+            });
+            document.addEventListener('click', (e) => {
+                if (!filterPanel.hidden && !filterPanel.contains(e.target) && e.target !== filterToggleBtn) {
+                    filterPanel.hidden = true;
+                }
+            });
+        }
+
         // Загрузка персонажей
         document.addEventListener('DOMContentLoaded', async () => {
+            setupFilterControls();
             try {
                 const response = await fetch('/api/characters');
                 if (!response.ok) throw new Error('Failed to fetch');
-                const characters = await response.json();
-                const grid = document.getElementById('character-grid');
-                grid.innerHTML = '';
-                if (characters.length === 0) {
-                    grid.innerHTML = '<p class="loading-text">No characters found.</p>';
-                    return;
-                }
-                characters.forEach((char) => {
-                    const card = document.createElement('div');
-                    card.className = 'character-card';
-                    card.innerHTML = `
-                        <div class="card-image" style="background-image: url('${char.avatar_url || 'https://via.placeholder.com/300x200'}');"></div>
-                        <div class="card-info">
-                            <h3>${char.name}</h3>
-                            <p>${char.description.substring(0, 80)}...</p>
-                            <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
-                            <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                });
+                allCharacters = await response.json();
+                applyFiltersAndRender();
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('character-grid').innerHTML =

@@ -41,6 +41,12 @@ body {
     color: var(--text-light);
 }
 
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .search-bar input {
     background-color: var(--card-bg);
     border: 1px solid var(--hover-bg);
@@ -49,6 +55,89 @@ body {
     border-radius: 20px;
     width: 300px;
     outline: none;
+}
+
+.filter-toggle-btn {
+    background-color: var(--card-bg);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.filter-toggle-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+.filter-panel {
+    position: fixed;
+    top: 68px;
+    right: 20px;
+    width: 260px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--hover-bg);
+    border-radius: 12px;
+    padding: 18px;
+    z-index: 150;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.filter-group {
+    margin-bottom: 18px;
+}
+
+.filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.filter-group > label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #ccc;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.filter-checkbox input {
+    cursor: pointer;
+}
+
+.desc-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    opacity: 0.8;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px;
+    text-decoration: underline;
+}
+
+.desc-toggle-btn:hover {
+    opacity: 1;
 }
 
 .avatar-circle {
