@@ -18,7 +18,58 @@
         </div>
         
         <div class="search-bar">
-            <input type="text" placeholder="Search characters...">
+            <input type="text" id="searchInput" placeholder="Search characters...">
+            <button class="filter-toggle-btn" id="filterToggleBtn" type="button">Filters</button>
+        </div>
+
+        <div class="filter-panel" id="filterPanel" hidden>
+            <div class="filter-group">
+                <label>Sort by popularity</label>
+                <div class="filter-options">
+                    <label class="filter-checkbox">
+                        <input type="radio" name="sortOrder" value="popular" checked> Popular first
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="radio" name="sortOrder" value="unpopular"> Least popular first
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Story intensity</label>
+                <div class="filter-options">
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="violenceAll" checked> All
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="violenceFilter" value="mild" checked> Mild
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="violenceFilter" value="medium" checked> Medium
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="violenceFilter" value="graphic" checked> Graphic
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Language</label>
+                <div class="filter-options">
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="langAll" checked> All
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="langFilter" value="en" checked> English
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="langFilter" value="ru" checked> Russian
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" class="langFilter" value="other" checked> Other
+                    </label>
+                </div>
+            </div>
         </div>
         
         <div class="user-avatar" id="userAvatarArea">
