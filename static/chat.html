@@ -48,6 +48,10 @@
                 <input type="checkbox" id="typingEffectToggle">
             </div>
 
+            <div class="settings-group">
+                <button type="button" class="settings-danger-btn" id="deleteHistoryBtn">Delete chat history</button>
+            </div>
+
             <button type="button" class="modal-btn-primary" id="settingsCloseBtn">Done</button>
         </div>
     </div>
@@ -110,6 +114,26 @@
             typingEffectToggle.addEventListener('change', () => {
                 settings.typingEffect = typingEffectToggle.checked;
                 saveSettings(settings);
+            });
+
+            const deleteHistoryBtn = document.getElementById('deleteHistoryBtn');
+            deleteHistoryBtn.addEventListener('click', async () => {
+                if (!confirm('Delete this whole conversation? This cannot be undone.')) return;
+
+                deleteHistoryBtn.disabled = true;
+                deleteHistoryBtn.textContent = 'Deleting...';
+                try {
+                    const res = await authFetch(`/api/chat/${charId}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    messagesEl.innerHTML = '<p class="loading-text">Say hello to start the conversation.</p>';
+                    settingsOverlay.classList.remove('active');
+                } catch (err) {
+                    console.error('Error deleting chat history:', err);
+                    alert('Failed to delete chat history.');
+                } finally {
+                    deleteHistoryBtn.disabled = false;
+                    deleteHistoryBtn.textContent = 'Delete chat history';
+                }
             });
 
             // --- Messages rendering ---
