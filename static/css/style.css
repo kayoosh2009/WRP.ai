@@ -1344,3 +1344,98 @@ body {
     font-size: 0.9rem;
 }
 
+/* --- Profile: editable name --- */
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.name-edit-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    opacity: 0.7;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.name-edit-btn:hover {
+    opacity: 1;
+    background-color: var(--hover-bg);
+}
+
+.name-edit-btn img {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.profile-name-input {
+    font-size: 1.4rem;
+    font-weight: bold;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--hover-bg);
+    color: var(--text-light);
+    border-radius: 6px;
+    padding: 2px 8px;
+    outline: none;
+    font-family: inherit;
+    max-width: 260px;
+}
+
+.profile-name-input:focus {
+    border-color: var(--text-light);
+}
+
+.name-save-btn {
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.name-save-btn:hover {
+    opacity: 0.9;
+}
+
+/* --- Profile: divider --- */
+.profile-divider {
+    border: none;
+    border-top: 1px solid var(--hover-bg);
+    margin: 36px 0;
+}
+
+/* --- Profile: two-column split (forum left, characters right) --- */
+.profile-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+.profile-column h2 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.profile-column .character-grid {
+    grid-template-columns: 1fr;
+}
+
+@media (max-width: 768px) {
+    .profile-columns {
+        grid-template-columns: 1fr;
+        gap: 36px;
+    }
+}
+

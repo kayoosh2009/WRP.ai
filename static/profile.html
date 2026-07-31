@@ -19,7 +19,14 @@
         <div class="profile-header">
             <div class="profile-avatar" id="profileAvatar">U</div>
             <div>
-                <div class="profile-name" id="profileName">Loading...</div>
+                <div class="profile-name-row">
+                    <div class="profile-name" id="profileName">Loading...</div>
+                    <input class="profile-name-input" id="profileNameInput" type="text" maxlength="40" style="display:none;">
+                    <button class="name-edit-btn" id="nameEditBtn" title="Edit name">
+                        <img src="img/edit.png" alt="Edit">
+                    </button>
+                    <button class="name-save-btn" id="nameSaveBtn" style="display:none;">Save</button>
+                </div>
                 <div class="profile-email" id="profileEmail"></div>
             </div>
         </div>
@@ -39,17 +46,21 @@
             </div>
         </div>
 
-        <div class="profile-section">
-            <h2>My characters</h2>
-            <div id="myCharactersGrid" class="character-grid">
-                <p class="loading-text">Loading your characters...</p>
-            </div>
-        </div>
+        <hr class="profile-divider">
 
-        <div class="profile-section">
-            <h2>My forum board</h2>
-            <div class="forum-placeholder">
-                Forum is coming soon. Your posts will show up here.
+        <div class="profile-columns">
+            <div class="profile-column">
+                <h2>My forum board</h2>
+                <div class="forum-placeholder">
+                    Forum is coming soon. Your posts will show up here.
+                </div>
+            </div>
+
+            <div class="profile-column">
+                <h2>My characters</h2>
+                <div id="myCharactersGrid" class="character-grid">
+                    <p class="loading-text">Loading your characters...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -62,17 +73,78 @@
         if (user) {
             const avatarEl = document.getElementById('profileAvatar');
             const nameEl = document.getElementById('profileName');
+            const nameInputEl = document.getElementById('profileNameInput');
+            const nameEditBtn = document.getElementById('nameEditBtn');
+            const nameSaveBtn = document.getElementById('nameSaveBtn');
             const emailEl = document.getElementById('profileEmail');
 
-            nameEl.textContent = user.profile.name || 'Unnamed user';
+            let currentName = user.profile.name || 'Unnamed user';
+            nameEl.textContent = currentName;
             emailEl.textContent = user.profile.email || '';
 
             if (user.profile.picture) {
                 avatarEl.style.backgroundImage = `url('${user.profile.picture}')`;
                 avatarEl.textContent = '';
             } else {
-                avatarEl.textContent = (user.profile.name || 'U').charAt(0).toUpperCase();
+                avatarEl.textContent = (currentName || 'U').charAt(0).toUpperCase();
             }
+
+            function enterEditMode() {
+                nameInputEl.value = currentName;
+                nameEl.style.display = 'none';
+                nameEditBtn.style.display = 'none';
+                nameInputEl.style.display = 'inline-block';
+                nameSaveBtn.style.display = 'inline-block';
+                nameInputEl.focus();
+                nameInputEl.select();
+            }
+
+            function exitEditMode() {
+                nameEl.style.display = '';
+                nameEditBtn.style.display = '';
+                nameInputEl.style.display = 'none';
+                nameSaveBtn.style.display = 'none';
+            }
+
+            async function saveName() {
+                const newName = nameInputEl.value.trim();
+                if (!newName || newName === currentName) {
+                    exitEditMode();
+                    return;
+                }
+
+                nameSaveBtn.disabled = true;
+                try {
+                    // NOTE: бэкенд-эндпоинт для смены имени пока не реализован.
+                    // Нужно добавить POST /api/profile/update-name в main.rs,
+                    // который обновит displayName в Firebase и/или в БД.
+                    const res = await authFetch('/api/profile/update-name', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName }),
+                    });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+                    currentName = newName;
+                    nameEl.textContent = currentName;
+                    if (!user.profile.picture) {
+                        avatarEl.textContent = currentName.charAt(0).toUpperCase();
+                    }
+                } catch (err) {
+                    console.error('Error updating name:', err);
+                    alert('Failed to save name. Please try again.');
+                } finally {
+                    nameSaveBtn.disabled = false;
+                    exitEditMode();
+                }
+            }
+
+            nameEditBtn.addEventListener('click', enterEditMode);
+            nameSaveBtn.addEventListener('click', saveName);
+            nameInputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveName();
+                if (e.key === 'Escape') exitEditMode();
+            });
 
             async function loadStats() {
                 try {
