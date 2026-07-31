@@ -388,6 +388,73 @@ impl FirestoreDb {
         Ok(())
     }
 
+/// Получить количество отправленных пользователем сообщений (для профиля)
+    async fn get_user_message_count(&self, uid: &str) -> i64 {
+        let url = format!("{}/users/{}?key={}", self.base_url(), uid, self.api_key);
+        match self.client.get(&url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(doc) = resp.json::<FirestoreDocument>().await {
+                    return get_integer_field(&doc.fields, "messages_sent").unwrap_or(0);
+                }
+                0
+            }
+            _ => 0,
+        }
+    }
+
+    /// Увеличить счётчик отправленных пользователем сообщений на 1
+    pub async fn increment_user_message_count(&self, id_token: &str, uid: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let current = self.get_user_message_count(uid).await;
+        let new_count = current + 1;
+
+        let url = format!(
+            "{}/users/{}?key={}&updateMask.fieldPaths=messages_sent",
+            self.base_url(),
+            uid,
+            self.api_key
+        );
+
+        let body = serde_json::json!({
+            "fields": {
+                "messages_sent": { "integerValue": new_count.to_string() }
+            }
+        });
+
+        let response = self.client
+            .patch(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore PATCH USER STATS error: {}", err_text).into());
+        }
+
+        Ok(())
+    }
+
+    /// Получить статистику профиля пользователя
+    pub async fn get_profile_stats(&self, uid: &str) -> Result<crate::model::ProfileStats, Box<dyn std::error::Error>> {
+        let messages_sent = self.get_user_message_count(uid).await as u64;
+
+        let characters = self.get_all_characters().await.unwrap_or_default();
+        let characters_created = characters.iter().filter(|c| c.created_by == uid).count() as u64;
+
+        Ok(crate::model::ProfileStats {
+            messages_sent,
+            characters_created,
+            forum_messages: 0,
+        })
+    }
+
+    /// Получить персонажей, созданных конкретным пользователем
+    pub async fn get_characters_by_owner(&self, uid: &str) -> Result<Vec<RpCharacter>, Box<dyn std::error::Error>> {
+        let characters = self.get_all_characters().await?;
+        Ok(characters.into_iter().filter(|c| c.created_by == uid).collect())
+    }
+
     /// Удалить персонажа (только для админа)
     pub async fn delete_character(&self, id_token: &str, char_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         let url = format!("{}/characters/{}?key={}", self.base_url(), char_id, self.api_key);

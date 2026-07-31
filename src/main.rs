@@ -50,6 +50,8 @@ async fn main() {
         .route("/api/chat/:char_id", get(get_chat_history_handler).post(send_chat_message_handler).delete(delete_chat_history_handler))
         .route("/api/me", get(get_me_handler))
         .route("/api/comments", post(add_comment_handler))
+        .route("/api/profile/stats", get(get_profile_stats_handler))
+        .route("/api/profile/characters", get(get_profile_characters_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_auth));
 
     // Роуты только для админа
