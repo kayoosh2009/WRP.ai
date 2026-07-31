@@ -967,9 +967,10 @@ body {
     display: flex;
     justify-content: center;
     margin-bottom: 24px;
-    overflow-x: auto;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
 }
-
 @media (max-width: 768px) {
     .top-ad-banner {
         transform: scale(0.85);
