@@ -304,10 +304,43 @@ async fn send_chat_message_handler(
     if let Err(e) = state.db.increment_message_count(&user.id_token, &char_id).await {
         eprintln!("⚠️ Не удалось обновить счётчик сообщений: {}", e);
     }
+
+    // 6. Инкрементируем личную статистику пользователя (сколько сообщений он отправил)
+    if let Err(e) = state.db.increment_user_message_count(&user.id_token, &user.uid).await {
+        eprintln!("⚠️ Не удалось обновить статистику пользователя: {}", e);
+    }
+
     Ok(Json(ChatMessageResponse { reply }))
 }
 
-// GET /api/me — данные текущего авторизованного пользователя
+// GET /api/profile/stats — статистика текущего пользователя для профиля
+async fn get_profile_stats_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+) -> Result<Json<model::ProfileStats>, StatusCode> {
+    match state.db.get_profile_stats(&user.uid).await {
+        Ok(stats) => Ok(Json(stats)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении статистики профиля: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// GET /api/profile/characters — персонажи, созданные текущим пользователем
+async fn get_profile_characters_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+) -> Result<Json<Vec<model::RpCharacter>>, StatusCode> {
+    match state.db.get_characters_by_owner(&user.uid).await {
+        Ok(characters) => Ok(Json(characters)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении персонажей профиля: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
 // GET /api/me — данные текущего авторизованного пользователя
 async fn get_me_handler(
     Extension(user): Extension<AuthUser>,
