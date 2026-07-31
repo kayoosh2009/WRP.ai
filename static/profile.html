@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Profile</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" class="back-link">← Back</a>
+            <div class="logo">WRP.ai</div>
+        </div>
+    </header>
+
+    <div class="profile-page">
+        <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">U</div>
+            <div>
+                <div class="profile-name" id="profileName">Loading...</div>
+                <div class="profile-email" id="profileEmail"></div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statMessagesSent">—</div>
+                <div class="stat-label">Messages sent to characters</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statCharactersCreated">—</div>
+                <div class="stat-label">Characters created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statForumMessages">—</div>
+                <div class="stat-label">Forum messages</div>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>My characters</h2>
+            <div id="myCharactersGrid" class="character-grid">
+                <p class="loading-text">Loading your characters...</p>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>My forum board</h2>
+            <div class="forum-placeholder">
+                Forum is coming soon. Your posts will show up here.
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuthOrRedirect, authFetch } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+
+        if (user) {
+            const avatarEl = document.getElementById('profileAvatar');
+            const nameEl = document.getElementById('profileName');
+            const emailEl = document.getElementById('profileEmail');
+
+            nameEl.textContent = user.profile.name || 'Unnamed user';
+            emailEl.textContent = user.profile.email || '';
+
+            if (user.profile.picture) {
+                avatarEl.style.backgroundImage = `url('${user.profile.picture}')`;
+                avatarEl.textContent = '';
+            } else {
+                avatarEl.textContent = (user.profile.name || 'U').charAt(0).toUpperCase();
+            }
+
+            async function loadStats() {
+                try {
+                    const res = await authFetch('/api/profile/stats');
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    const stats = await res.json();
+
+                    document.getElementById('statMessagesSent').textContent = stats.messages_sent;
+                    document.getElementById('statCharactersCreated').textContent = stats.characters_created;
+                    document.getElementById('statForumMessages').textContent = stats.forum_messages;
+                } catch (err) {
+                    console.error('Error loading profile stats:', err);
+                }
+            }
+
+            async function loadMyCharacters() {
+                const grid = document.getElementById('myCharactersGrid');
+                try {
+                    const res = await authFetch('/api/profile/characters');
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    const characters = await res.json();
+
+                    if (characters.length === 0) {
+                        grid.innerHTML = '<p class="loading-text">You haven\'t created any characters yet.</p>';
+                        return;
+                    }
+
+                    grid.innerHTML = '';
+                    characters.forEach((char) => {
+                        const card = document.createElement('div');
+                        card.className = 'character-card';
+                        card.innerHTML = `
+                            <div class="card-image" style="background-image: url('${char.avatar_url || 'https://via.placeholder.com/300x200'}');"></div>
+                            <div class="card-info">
+                                <h3>${char.name}</h3>
+                                <p>${char.description.substring(0, 80)}...</p>
+                                <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
+                                <button class="chat-btn" onclick="window.location.href='/chat.html?id=${char.id}'">Start Chat</button>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                } catch (err) {
+                    console.error('Error loading your characters:', err);
+                    grid.innerHTML = '<p class="error-text">Failed to load your characters.</p>';
+                }
+            }
+
+            loadStats();
+            loadMyCharacters();
+        }
+    </script>
+</body>
+</html>
