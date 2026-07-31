@@ -188,6 +188,7 @@ async fn create_character_handler(
 
     match state.db.create_character(
         &user.id_token,
+        &user.uid,
         &payload.name,
         &payload.avatar_url,
         &payload.description,
