@@ -86,6 +86,7 @@ impl FirestoreDb {
             message_count: get_integer_field(&doc.fields, "message_count").unwrap_or(0) as u64,
             language: get_string_field(&doc.fields, "language").unwrap_or_else(|_| "en".to_string()),
             violence_level: get_string_field(&doc.fields, "violence_level").unwrap_or_else(|_| "mild".to_string()),
+            created_by: get_string_field(&doc.fields, "created_by").unwrap_or_default(),
         })
     }
 
@@ -160,6 +161,7 @@ impl FirestoreDb {
     pub async fn create_character(
         &self,
         id_token: &str,
+        uid: &str,
         name: &str,
         avatar_url: &str,
         description: &str,
@@ -177,7 +179,8 @@ impl FirestoreDb {
                 "internal_prompt": { "stringValue": internal_prompt },
                 "message_count": { "integerValue": "0" },
                 "language": { "stringValue": language },
-                "violence_level": { "stringValue": violence_level }
+                "violence_level": { "stringValue": violence_level },
+                "created_by": { "stringValue": uid }
             }
         });
 

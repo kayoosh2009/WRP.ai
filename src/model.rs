@@ -19,4 +19,13 @@ pub struct RpCharacter {
     pub message_count: u64, // Статистика: сколько сообщений ей отправили
     pub language: String,       // "ru" | "en" | произвольная строка
     pub violence_level: String, // "mild" | "medium" | "graphic"
+    #[serde(default)]
+    pub created_by: String, // uid пользователя, создавшего персонажа
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProfileStats {
+    pub messages_sent: u64,
+    pub characters_created: u64,
+    pub forum_messages: u64,
 }
