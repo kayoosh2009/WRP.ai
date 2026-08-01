@@ -659,7 +659,8 @@ body {
 .chat-page {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100vh;   /* fallback для старых браузеров */
+    height: 100dvh;  /* реальная видимая высота на мобильных */
     overflow: hidden;
 }
 
@@ -758,6 +759,7 @@ body {
     display: flex;
     gap: 10px;
     padding: 16px 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--hover-bg);
     background-color: var(--bg-dark);
     flex-shrink: 0;
