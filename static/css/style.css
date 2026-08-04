@@ -2,7 +2,8 @@
     --bg-dark: #2A2529;
     --text-light: #F3F0E7;
     --accent: #F3F0E7;
-    --card-bg: #3a343a; /* Чуть светлее основного фона для карточек */
+    --card-bg: #3a343a;
+    /* Чуть светлее основного фона для карточек */
     --hover-bg: #4a434b;
 }
 
@@ -32,6 +33,12 @@ body {
     justify-content: space-between;
     padding: 0 20px;
     z-index: 100;
+}
+
+.back-icon {
+    height: 24px;
+    width: auto;
+    display: block;
 }
 
 .logo {
@@ -94,7 +101,7 @@ body {
     margin-bottom: 0;
 }
 
-.filter-group > label {
+.filter-group>label {
     display: block;
     font-size: 0.75rem;
     font-weight: bold;
@@ -157,7 +164,8 @@ body {
 /* --- Layout --- */
 .layout-container {
     display: flex;
-    margin-top: 60px; /* Отступ под фиксированный header */
+    margin-top: 60px;
+    /* Отступ под фиксированный header */
     min-height: calc(100vh - 60px);
 }
 
@@ -170,12 +178,14 @@ body {
     height: 100%;
     overflow-y: auto;
     transition: transform 0.3s ease;
-    transform: translateX(-100%);   /* добавить: скрыт по умолчанию */
+    transform: translateX(-100%);
+    /* добавить: скрыт по умолчанию */
     z-index: 90;
 }
 
 .sidebar.open {
-    transform: translateX(0);       /* добавить: показываем при открытии */
+    transform: translateX(0);
+    /* добавить: показываем при открытии */
 }
 
 .nav-item {
@@ -204,7 +214,8 @@ body {
 
 /* --- Main Content --- */
 .main-content {
-    margin-left: 0;   /* было: margin-left: 240px; */
+    margin-left: 0;
+    /* было: margin-left: 240px; */
     padding: 24px;
     width: 100%;
 }
@@ -231,7 +242,7 @@ body {
 
 .character-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .card-image {
@@ -280,7 +291,8 @@ body {
     opacity: 0.9;
 }
 
-.loading-text, .error-text {
+.loading-text,
+.error-text {
     grid-column: 1 / -1;
     text-align: center;
     padding: 40px;
@@ -330,17 +342,20 @@ body {
     background-color: var(--bg-dark);
     padding: 10px 0;
     position: fixed;
-    top: 60px;                      /* было не указано */
+    top: 60px;
+    /* было не указано */
     height: calc(100% - 60px);
     overflow-y: auto;
     display: flex;
-    flex-direction: column; /* Позволяет прижать нижний элемент */
+    flex-direction: column;
+    /* Позволяет прижать нижний элемент */
     transition: transform 0.3s ease;
     z-index: 90;
 }
 
 .sidebar-nav {
-    flex: 1; /* Занимает всё доступное пространство, толкая Telegram вниз */
+    flex: 1;
+    /* Занимает всё доступное пространство, толкая Telegram вниз */
 }
 
 .nav-icon {
@@ -398,7 +413,7 @@ body {
     .search-bar input {
         width: 150px;
     }
-    
+
     .character-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 15px;
@@ -410,7 +425,7 @@ body {
     .search-bar {
         display: none;
     }
-    
+
     .character-grid {
         grid-template-columns: 1fr;
     }
@@ -659,8 +674,10 @@ body {
 .chat-page {
     display: flex;
     flex-direction: column;
-    height: 100vh;   /* fallback для старых браузеров */
-    height: 100dvh;  /* реальная видимая высота на мобильных */
+    height: 100vh;
+    /* fallback для старых браузеров */
+    height: 100dvh;
+    /* реальная видимая высота на мобильных */
     overflow: hidden;
 }
 
@@ -950,7 +967,9 @@ body {
 }
 
 @keyframes blink {
-    50% { opacity: 0; }
+    50% {
+        opacity: 0;
+    }
 }
 
 /* --- Ad slot in character grid --- */
@@ -973,6 +992,7 @@ body {
     position: relative;
     z-index: 1;
 }
+
 @media (max-width: 768px) {
     .top-ad-banner {
         transform: scale(0.85);
@@ -1440,4 +1460,3 @@ body {
         gap: 36px;
     }
 }
-
