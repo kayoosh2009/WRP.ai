@@ -243,6 +243,8 @@
                 });
             }
 
+            const adBanner = document.getElementById('adBanner');
+
             function setLoadingReply(show) {
                 let el = document.getElementById('typingIndicator');
                 if (show) {
@@ -254,8 +256,10 @@
                         messagesEl.appendChild(el);
                         scrollToBottom();
                     }
+                    adBanner.classList.add('active');
                 } else if (el) {
                     el.remove();
+                    adBanner.classList.remove('active');
                 }
             }
 
