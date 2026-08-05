@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WRP.ai — Вход</title>
+    <title>WRP.ai — Login</title>
     <link rel="icon" href="img/favicon.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -18,11 +18,11 @@
 
     <div class="login-card">
         <div class="login-logo">WRP.ai</div>
-        <p class="login-subtitle">Войдите, чтобы общаться с персонажами</p>
+        <p class="login-subtitle">Log in to chat with characters</p>
 
         <button id="googleSignInBtn" class="google-btn">
             <img src="img/google.png" alt="Google" class="google-icon">
-            <span>Войти через Google</span>
+            <span>Log in with Google</span>
         </button>
 
         <p id="loginError" class="login-error" hidden></p>
@@ -46,8 +46,8 @@
                 await signInWithGoogle();
                 window.location.href = '/';
             } catch (e) {
-                console.error('Ошибка входа:', e);
-                errorEl.textContent = 'Не удалось войти через Google. Попробуйте ещё раз.';
+                console.error('Login error:', e);
+                errorEl.textContent = 'Failed to log in with Google. Please try again.';
                 errorEl.hidden = false;
                 btn.disabled = false;
             }
