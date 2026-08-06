@@ -76,9 +76,22 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
     <script type="module">
         import { getCachedUser, authFetch } from '/js/auth.js';
+
+        window.toggleMenu = function () {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
+            overlay.classList.toggle('active');
+        }
 
         const ADMIN_EMAIL = 'kayoosh2009@gmail.com';
         const user = getCachedUser();
