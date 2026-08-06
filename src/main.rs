@@ -65,7 +65,8 @@ async fn main() {
         .route("/api/characters", get(get_characters_handler))
         .route("/api/characters/:char_id", get(get_character_handler))
         .route("/api/firebase-config", get(get_firebase_config_handler))
-        .route("/api/comments", get(get_comments_handler));
+        .route("/api/comments", get(get_comments_handler))
+        .route("/api/notifications", get(get_notifications_handler));
 
     let app = Router::new()
         .merge(public_routes)

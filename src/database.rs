@@ -107,6 +107,15 @@ impl FirestoreDb {
         })
     }
 
+    fn parse_notification(&self, doc: &FirestoreDocument) -> Result<crate::model::Notification, String> {
+        Ok(crate::model::Notification {
+            id: doc.name.split('/').last().unwrap_or("unknown").to_string(),
+            title: get_string_field(&doc.fields, "title")?,
+            message: get_string_field(&doc.fields, "message")?,
+            timestamp: get_integer_field(&doc.fields, "timestamp").unwrap_or(0),
+        })
+    }
+
     /// Fetch a character from Firestore by their ID
     pub async fn get_character(&self, char_id: &str) -> Result<RpCharacter, Box<dyn std::error::Error>> {
         let url = format!(
@@ -537,5 +546,76 @@ impl FirestoreDb {
         comments.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)); // новые сверху
 
         Ok(comments)
+    }
+
+    /// Получить последние уведомления (новые сверху, максимум 20 штук)
+    pub async fn get_notifications(&self) -> Result<Vec<crate::model::Notification>, Box<dyn std::error::Error>> {
+        let url = format!("{}/notifications?key={}", self.base_url(), self.api_key);
+
+        let response = self.client.get(&url).send().await?;
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(Vec::new());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET NOTIFICATIONS error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let mut notifications = Vec::new();
+
+        for doc in &list_response.documents {
+            if let Ok(n) = self.parse_notification(doc) {
+                notifications.push(n);
+            }
+        }
+
+        notifications.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)); // новые сверху
+        notifications.truncate(20);
+
+        Ok(notifications)
+    }
+
+    /// Создать новое уведомление (только для админа)
+    pub async fn add_notification(
+        &self,
+        id_token: &str,
+        title: &str,
+        message: &str,
+    ) -> Result<crate::model::Notification, Box<dyn std::error::Error>> {
+        let url = format!("{}/notifications?key={}", self.base_url(), self.api_key);
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        let body = serde_json::json!({
+            "fields": {
+                "title": { "stringValue": title },
+                "message": { "stringValue": message },
+                "timestamp": { "integerValue": timestamp.to_string() }
+            }
+        });
+
+        println!("🔔 [DB] Создаю уведомление: {}", title);
+
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore ADD NOTIFICATION error: {}", err_text).into());
+        }
+
+        let doc: FirestoreDocument = response.json().await?;
+        let notification = self.parse_notification(&doc)
+            .map_err(|e| format!("Failed to parse created notification: {}", e))?;
+
+        Ok(notification)
     }
 }
