@@ -58,6 +58,7 @@ async fn main() {
     let admin_routes = Router::new()
         .route("/api/admin/stats", get(get_admin_stats_handler))
         .route("/api/admin/characters/:char_id", delete(delete_character_handler))
+        .route("/api/admin/notifications", post(add_notification_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_admin));
 
     // Публичные роуты
@@ -433,6 +434,46 @@ async fn delete_character_handler(
         Ok(_) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             eprintln!("❌ Ошибка при удалении персонажа: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// GET /api/notifications — публичный список последних уведомлений
+async fn get_notifications_handler(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<model::Notification>>, StatusCode> {
+    match state.db.get_notifications().await {
+        Ok(notifications) => Ok(Json(notifications)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении уведомлений: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct AddNotificationRequest {
+    title: String,
+    message: String,
+}
+
+// POST /api/admin/notifications — создать уведомление (только для админа)
+async fn add_notification_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Json(payload): Json<AddNotificationRequest>,
+) -> Result<Json<model::Notification>, StatusCode> {
+    let title = payload.title.trim();
+    let message = payload.message.trim();
+    if title.is_empty() || message.is_empty() || title.len() > 100 || message.len() > 1000 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    match state.db.add_notification(&user.id_token, title, message).await {
+        Ok(notification) => Ok(Json(notification)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при создании уведомления: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }

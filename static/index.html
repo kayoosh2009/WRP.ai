@@ -73,12 +73,26 @@
             </div>
         </div>
         
-        <div class="user-avatar" id="userAvatarArea">
-            <span class="login-hint" id="loginHint" hidden>Войдите в аккаунт</span>
-            <div class="avatar-circle" id="avatarCircle">U</div>
+        <div class="header-right">
+            <button class="notification-btn" id="notificationBtn" type="button">
+                <img src="img/notification.png" alt="Notifications" class="notification-icon">
+                <span class="notification-dot" id="notificationDot" hidden></span>
+            </button>
+
+            <div class="notification-panel" id="notificationPanel" hidden>
+                <h4>Notifications</h4>
+                <div id="notificationList">
+                    <p class="loading-text">Loading...</p>
+                </div>
+            </div>
+
+            <div class="user-avatar" id="userAvatarArea">
+                <span class="login-hint" id="loginHint" hidden>Войдите в аккаунт</span>
+                <div class="avatar-circle" id="avatarCircle">U</div>
+            </div>
         </div>
     </header>
-
+    
     <div class="layout-container">
         <!-- Левое меню (Sidebar) -->
             <aside class="sidebar" id="sidebar">
