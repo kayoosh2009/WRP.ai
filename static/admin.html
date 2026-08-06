@@ -18,6 +18,9 @@
 
     <header class="top-bar">
         <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <img src="img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
+            </button>
             <a href="/" class="back-link">
     <img src="img/back.png" alt="Back" class="back-icon">
 </a>
@@ -25,7 +28,21 @@
         </div>
     </header>
 
-    <div class="admin-page">
+    <div class="layout-container">
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="/admin.html" class="nav-item">
+                    <img src="img/dashboard.png" alt="Dashboard" class="nav-icon">
+                    <span>Dashboard</span>
+                </a>
+                <a href="/admin/notification.html" class="nav-item">
+                    <img src="img/notification.png" alt="Notifications" class="nav-icon">
+                    <span>Notifications</span>
+                </a>
+            </nav>
+        </aside>
+
+    <div class="admin-page main-content">
         <div id="accessDenied" class="form-card" hidden>
             <h2>Access denied</h2>
             <p class="form-subtitle">This page is only available to the site administrator.</p>
