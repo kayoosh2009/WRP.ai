@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Notifications Admin</title>
+    <link rel="icon" href="../img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .back-icon {
+            height: 24px;
+            width: auto;
+            display: block;
+        }
+        .notification-form-group {
+            margin-bottom: 16px;
+        }
+        .notification-form-group label {
+            display: block;
+            margin-bottom: 6px;
+        }
+        .notification-form-group input,
+        .notification-form-group textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        .admin-notif-row {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .admin-notif-row:last-child {
+            border-bottom: none;
+        }
+        .admin-notif-title {
+            font-weight: 600;
+        }
+        .admin-notif-message {
+            opacity: 0.85;
+            margin: 4px 0;
+        }
+        .admin-notif-time {
+            font-size: 0.8em;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <img src="../img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
+            </button>
+            <a href="/admin.html" class="back-link">
+                <img src="../img/back.png" alt="Back" class="back-icon">
+            </a>
+            <div class="logo">WRP.ai Admin</div>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="/admin.html" class="nav-item">
+                    <img src="../img/dashboard.png" alt="Dashboard" class="nav-icon">
+                    <span>Dashboard</span>
+                </a>
+                <a href="/admin/notification.html" class="nav-item">
+                    <img src="../img/notification.png" alt="Notifications" class="nav-icon">
+                    <span>Notifications</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="admin-page main-content">
+            <div id="accessDenied" class="form-card" hidden>
+                <h2>Access denied</h2>
+                <p class="form-subtitle">This page is only available to the site administrator.</p>
+            </div>
+
+            <div id="adminContent" hidden>
+                <div class="form-card">
+                    <h2>Send a notification</h2>
+                    <form id="notificationForm">
+                        <div class="notification-form-group">
+                            <label for="notifTitle">Title</label>
+                            <input type="text" id="notifTitle" maxlength="100" required>
+                        </div>
+                        <div class="notification-form-group">
+                            <label for="notifMessage">Message</label>
+                            <textarea id="notifMessage" rows="4" maxlength="1000" required></textarea>
+                        </div>
+                        <button type="submit" class="modal-btn-primary" id="notifSubmitBtn">Send notification</button>
+                    </form>
+                </div>
+
+                <div class="form-card">
+                    <h2>Past notifications</h2>
+                    <div id="notificationHistory">
+                        <p class="loading-text">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <script type="module">
+        import { getCachedUser, authFetch } from '/js/auth.js';
+
+        window.toggleMenu = function () {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
+            overlay.classList.toggle('active');
+        }
+
+        const ADMIN_EMAIL = 'kayoosh2009@gmail.com';
+        const user = getCachedUser();
+
+        const accessDenied = document.getElementById('accessDenied');
+        const adminContent = document.getElementById('adminContent');
+
+        if (!user || user.profile.email !== ADMIN_EMAIL) {
+            // Клиентская проверка — просто для UX, реальная защита на backend через require_admin
+            accessDenied.hidden = false;
+        } else {
+            adminContent.hidden = false;
+            loadHistory();
+            setupForm();
+        }
+
+        function formatTime(ts) {
+            return new Date(ts).toLocaleString();
+        }
+
+        async function loadHistory() {
+            const container = document.getElementById('notificationHistory');
+            try {
+                const res = await fetch('/api/notifications');
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                const notifications = await res.json();
+
+                if (notifications.length === 0) {
+                    container.innerHTML = '<p class="loading-text">No notifications yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = notifications.map(n => `
+                    <div class="admin-notif-row">
+                        <div class="admin-notif-title">${n.title}</div>
+                        <div class="admin-notif-message">${n.message}</div>
+                        <div class="admin-notif-time">${formatTime(n.timestamp)}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading notifications:', err);
+                container.innerHTML = '<p class="error-text">Failed to load notifications.</p>';
+            }
+        }
+
+        function setupForm() {
+            const form = document.getElementById('notificationForm');
+            const submitBtn = document.getElementById('notifSubmitBtn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const title = document.getElementById('notifTitle').value.trim();
+                const message = document.getElementById('notifMessage').value.trim();
+                if (!title || !message) return;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+
+                try {
+                    const res = await authFetch('/api/admin/notifications', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, message }),
+                    });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+                    form.reset();
+                    await loadHistory();
+                } catch (err) {
+                    console.error('Error sending notification:', err);
+                    alert('Failed to send notification.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send notification';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
