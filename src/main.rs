@@ -59,6 +59,8 @@ async fn main() {
         .route("/api/admin/stats", get(get_admin_stats_handler))
         .route("/api/admin/characters/:char_id", delete(delete_character_handler))
         .route("/api/admin/notifications", post(add_notification_handler))
+        .route("/api/admin/sponsors", post(add_sponsor_handler))
+        .route("/api/admin/sponsors/:sponsor_id", delete(delete_sponsor_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_admin));
 
     // Публичные роуты
@@ -67,7 +69,8 @@ async fn main() {
         .route("/api/characters/:char_id", get(get_character_handler))
         .route("/api/firebase-config", get(get_firebase_config_handler))
         .route("/api/comments", get(get_comments_handler))
-        .route("/api/notifications", get(get_notifications_handler));
+        .route("/api/notifications", get(get_notifications_handler))
+        .route("/api/sponsors", get(get_sponsors_handler));
 
     let app = Router::new()
         .merge(public_routes)
@@ -474,6 +477,70 @@ async fn add_notification_handler(
         Ok(notification) => Ok(Json(notification)),
         Err(e) => {
             eprintln!("❌ Ошибка при создании уведомления: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// Разрешаем только http/https ссылки — защита от javascript:/data: в href на публичной странице
+fn is_safe_url(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://")
+}
+
+#[derive(Deserialize)]
+struct AddSponsorRequest {
+    name: String,
+    url: String,
+}
+
+// GET /api/sponsors — публичный список спонсоров
+async fn get_sponsors_handler(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<model::Sponsor>>, StatusCode> {
+    match state.db.get_sponsors().await {
+        Ok(sponsors) => Ok(Json(sponsors)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении спонсоров: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// POST /api/admin/sponsors — добавить спонсора (только для админа)
+async fn add_sponsor_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Json(payload): Json<AddSponsorRequest>,
+) -> Result<Json<model::Sponsor>, StatusCode> {
+    let name = payload.name.trim();
+    let url = payload.url.trim();
+
+    if name.is_empty() || url.is_empty() || name.len() > 80 || url.len() > 500 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    if !is_safe_url(url) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    match state.db.add_sponsor(&user.id_token, name, url).await {
+        Ok(sponsor) => Ok(Json(sponsor)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при добавлении спонсора: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// DELETE /api/admin/sponsors/:sponsor_id — удалить спонсора (только для админа)
+async fn delete_sponsor_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(sponsor_id): Path<String>,
+) -> Result<StatusCode, StatusCode> {
+    match state.db.delete_sponsor(&user.id_token, &sponsor_id).await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            eprintln!("❌ Ошибка при удалении спонсора: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
