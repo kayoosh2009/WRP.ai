@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Sponsors Admin</title>
+    <link rel="icon" href="../img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .back-icon {
+            height: 24px;
+            width: auto;
+            display: block;
+        }
+        .sponsor-form-group {
+            margin-bottom: 16px;
+        }
+        .sponsor-form-group label {
+            display: block;
+            margin-bottom: 6px;
+        }
+        .sponsor-form-group input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        .admin-sponsor-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .admin-sponsor-row:last-child {
+            border-bottom: none;
+        }
+        .admin-sponsor-info .name {
+            font-weight: 600;
+        }
+        .admin-sponsor-info .url {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <img src="../img/menu.png" alt="Menu" id="menuIcon" class="menu-icon">
+            </button>
+            <a href="/admin.html" class="back-link">
+                <img src="../img/back.png" alt="Back" class="back-icon">
+            </a>
+            <div class="logo">WRP.ai Admin</div>
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="/admin.html" class="nav-item">
+                    <img src="../img/dashboard.png" alt="Dashboard" class="nav-icon">
+                    <span>Dashboard</span>
+                </a>
+                <a href="/admin/notification.html" class="nav-item">
+                    <img src="../img/notification.png" alt="Notifications" class="nav-icon">
+                    <span>Notifications</span>
+                </a>
+                <a href="/admin/sponsors.html" class="nav-item">
+                    <img src="../img/donate.png" alt="Sponsors" class="nav-icon">
+                    <span>Sponsors</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="admin-page main-content">
+            <div id="accessDenied" class="form-card" hidden>
+                <h2>Access denied</h2>
+                <p class="form-subtitle">This page is only available to the site administrator.</p>
+            </div>
+
+            <div id="adminContent" hidden>
+                <div class="form-card">
+                    <h2>Add a sponsor</h2>
+                    <form id="sponsorForm">
+                        <div class="sponsor-form-group">
+                            <label for="sponsorName">Name</label>
+                            <input type="text" id="sponsorName" maxlength="80" required>
+                        </div>
+                        <div class="sponsor-form-group">
+                            <label for="sponsorUrl">Link (http:// or https://)</label>
+                            <input type="url" id="sponsorUrl" maxlength="500" placeholder="https://..." required>
+                        </div>
+                        <button type="submit" class="modal-btn-primary" id="sponsorSubmitBtn">Add sponsor</button>
+                    </form>
+                </div>
+
+                <div class="form-card">
+                    <h2>Current sponsors</h2>
+                    <div id="sponsorsHistory">
+                        <p class="loading-text">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <script type="module">
+        import { getCachedUser, authFetch } from '/js/auth.js';
+
+        window.toggleMenu = function () {
+            const sidebar = document.getElementById('sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.toggle('open');
+            menuIcon.classList.toggle('rotated');
+            overlay.classList.toggle('active');
+        }
+
+        const ADMIN_EMAIL = 'kayoosh2009@gmail.com';
+        const user = getCachedUser();
+
+        const accessDenied = document.getElementById('accessDenied');
+        const adminContent = document.getElementById('adminContent');
+
+        if (!user || user.profile.email !== ADMIN_EMAIL) {
+            accessDenied.hidden = false;
+        } else {
+            adminContent.hidden = false;
+            loadSponsors();
+            setupForm();
+        }
+
+        function shortenUrl(url, maxLen = 40) {
+            const stripped = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped;
+        }
+
+        async function loadSponsors() {
+            const container = document.getElementById('sponsorsHistory');
+            try {
+                const res = await fetch('/api/sponsors');
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                const sponsors = await res.json();
+
+                if (sponsors.length === 0) {
+                    container.innerHTML = '<p class="loading-text">No sponsors yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                sponsors.forEach(s => {
+                    const row = document.createElement('div');
+                    row.className = 'admin-sponsor-row';
+                    row.innerHTML = `
+                        <div class="admin-sponsor-info">
+                            <div class="name">${s.name}</div>
+                            <div class="url" title="${s.url}">${shortenUrl(s.url)}</div>
+                        </div>
+                        <button class="admin-delete-btn" data-id="${s.id}">Delete</button>
+                    `;
+                    container.appendChild(row);
+                });
+
+                container.querySelectorAll('.admin-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        if (!confirm('Remove this sponsor?')) return;
+
+                        btn.disabled = true;
+                        btn.textContent = 'Deleting...';
+                        try {
+                            const res = await authFetch(`/api/admin/sponsors/${btn.dataset.id}`, { method: 'DELETE' });
+                            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                            btn.closest('.admin-sponsor-row').remove();
+                        } catch (err) {
+                            console.error('Error deleting sponsor:', err);
+                            alert('Failed to delete sponsor.');
+                            btn.disabled = false;
+                            btn.textContent = 'Delete';
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error('Error loading sponsors:', err);
+                container.innerHTML = '<p class="error-text">Failed to load sponsors.</p>';
+            }
+        }
+
+        function setupForm() {
+            const form = document.getElementById('sponsorForm');
+            const submitBtn = document.getElementById('sponsorSubmitBtn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('sponsorName').value.trim();
+                const url = document.getElementById('sponsorUrl').value.trim();
+                if (!name || !url) return;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adding...';
+
+                try {
+                    const res = await authFetch('/api/admin/sponsors', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, url }),
+                    });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+                    form.reset();
+                    await loadSponsors();
+                } catch (err) {
+                    console.error('Error adding sponsor:', err);
+                    alert('Failed to add sponsor.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Add sponsor';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

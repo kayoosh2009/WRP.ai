@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Sponsors</title>
+    <link rel="icon" href="img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .back-icon {
+            height: 24px;
+            width: auto;
+            display: block;
+        }
+        .sponsors-page {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+        .sponsor-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+        }
+        .sponsor-name {
+            font-weight: 600;
+        }
+        .sponsor-link {
+            opacity: 0.7;
+            font-size: 0.9em;
+            text-decoration: none;
+            color: inherit;
+        }
+        .sponsor-link:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" class="back-link">
+                <img src="img/back.png" alt="Back" class="back-icon">
+            </a>
+            <div class="logo">WRP.ai</div>
+        </div>
+    </header>
+
+    <div class="sponsors-page">
+        <h2>Hall of Fame</h2>
+        <p class="form-subtitle">People who helped promote this project. Thank you!</p>
+
+        <div id="sponsorsList">
+            <p class="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        function shortenUrl(url, maxLen = 32) {
+            const stripped = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped;
+        }
+
+        async function loadSponsors() {
+            const container = document.getElementById('sponsorsList');
+            try {
+                const res = await fetch('/api/sponsors');
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                const sponsors = await res.json();
+
+                if (sponsors.length === 0) {
+                    container.innerHTML = '<p class="loading-text">No sponsors yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = sponsors.map(s => `
+                    <div class="sponsor-card">
+                        <span class="sponsor-name">${s.name}</span>
+                        <a class="sponsor-link" href="${s.url}" target="_blank" rel="noopener noreferrer nofollow" title="${s.url}">
+                            ${shortenUrl(s.url)}
+                        </a>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading sponsors:', err);
+                container.innerHTML = '<p class="error-text">Failed to load sponsors.</p>';
+            }
+        }
+
+        loadSponsors();
+    </script>
+</body>
+</html>
