@@ -29,3 +29,11 @@ pub struct ProfileStats {
     pub characters_created: u64,
     pub forum_messages: u64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Notification {
+    pub id: String,
+    pub title: String,
+    pub message: String,
+    pub timestamp: i64,
+}
