@@ -92,7 +92,7 @@
             </div>
         </div>
     </header>
-    
+
     <div class="layout-container">
         <!-- Левое меню (Sidebar) -->
             <aside class="sidebar" id="sidebar">
@@ -375,6 +375,72 @@
             }
             window.location.href = `/chat.html?id=${charId}`;
         }
+    </script>
+
+    <script type="module">
+        const LAST_SEEN_KEY = 'wrp_notifications_last_seen';
+
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationPanel = document.getElementById('notificationPanel');
+        const notificationList = document.getElementById('notificationList');
+        const notificationDot = document.getElementById('notificationDot');
+
+        let notifications = [];
+
+        function formatTime(ts) {
+            const date = new Date(ts);
+            return date.toLocaleString();
+        }
+
+        function renderNotifications() {
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<p class="loading-text">No notifications yet.</p>';
+                return;
+            }
+            notificationList.innerHTML = notifications.map(n => `
+                <div class="notification-item">
+                    <div class="n-title">${n.title}</div>
+                    <div class="n-message">${n.message}</div>
+                    <div class="n-time">${formatTime(n.timestamp)}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateDot() {
+            const lastSeen = parseInt(localStorage.getItem(LAST_SEEN_KEY) || '0', 10);
+            const hasUnread = notifications.some(n => n.timestamp > lastSeen);
+            notificationDot.hidden = !hasUnread;
+        }
+
+        async function loadNotifications() {
+            try {
+                const res = await fetch('/api/notifications');
+                if (!res.ok) throw new Error('Failed to fetch notifications');
+                notifications = await res.json();
+                renderNotifications();
+                updateDot();
+            } catch (err) {
+                console.error('Error loading notifications:', err);
+                notificationList.innerHTML = '<p class="error-text">Failed to load notifications.</p>';
+            }
+        }
+
+        notificationBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notificationPanel.hidden = !notificationPanel.hidden;
+            if (!notificationPanel.hidden && notifications.length > 0) {
+                localStorage.setItem(LAST_SEEN_KEY, String(notifications[0].timestamp));
+                notificationDot.hidden = true;
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationPanel.hidden && !notificationPanel.contains(e.target) && e.target !== notificationBtn) {
+                notificationPanel.hidden = true;
+            }
+        });
+
+        loadNotifications();
     </script>
 </body>
 </html>

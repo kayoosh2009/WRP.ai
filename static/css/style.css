@@ -1460,3 +1460,79 @@ body {
         gap: 36px;
     }
 }
+
+.header-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.notification-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.notification-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e0433d;
+}
+
+.notification-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: #2a2529;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 1000;
+}
+
+.notification-panel h4 {
+    margin: 0 0 8px 0;
+}
+
+.notification-item {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item .n-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.notification-item .n-message {
+    font-size: 0.9em;
+    opacity: 0.85;
+}
+
+.notification-item .n-time {
+    font-size: 0.75em;
+    opacity: 0.5;
+    margin-top: 4px;
+}
