@@ -37,3 +37,11 @@ pub struct Notification {
     pub message: String,
     pub timestamp: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Sponsor {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub timestamp: i64,
+}

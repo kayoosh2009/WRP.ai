@@ -116,6 +116,14 @@ impl FirestoreDb {
         })
     }
 
+    fn parse_sponsor(&self, doc: &FirestoreDocument) -> Result<crate::model::Sponsor, String> {
+        Ok(crate::model::Sponsor {
+            id: doc.name.split('/').last().unwrap_or("unknown").to_string(),
+            name: get_string_field(&doc.fields, "name")?,
+            url: get_string_field(&doc.fields, "url")?,
+            timestamp: get_integer_field(&doc.fields, "timestamp").unwrap_or(0),
+        })
+    }
     /// Fetch a character from Firestore by their ID
     pub async fn get_character(&self, char_id: &str) -> Result<RpCharacter, Box<dyn std::error::Error>> {
         let url = format!(
@@ -617,5 +625,93 @@ impl FirestoreDb {
             .map_err(|e| format!("Failed to parse created notification: {}", e))?;
 
         Ok(notification)
+    }
+
+    /// Получить всех спонсоров (новые сверху)
+    pub async fn get_sponsors(&self) -> Result<Vec<crate::model::Sponsor>, Box<dyn std::error::Error>> {
+        let url = format!("{}/sponsors?key={}", self.base_url(), self.api_key);
+
+        let response = self.client.get(&url).send().await?;
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(Vec::new());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET SPONSORS error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let mut sponsors = Vec::new();
+
+        for doc in &list_response.documents {
+            if let Ok(s) = self.parse_sponsor(doc) {
+                sponsors.push(s);
+            }
+        }
+
+        sponsors.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)); // новые сверху
+
+        Ok(sponsors)
+    }
+
+    /// Добавить спонсора (только для админа)
+    pub async fn add_sponsor(
+        &self,
+        id_token: &str,
+        name: &str,
+        url: &str,
+    ) -> Result<crate::model::Sponsor, Box<dyn std::error::Error>> {
+        let firestore_url = format!("{}/sponsors?key={}", self.base_url(), self.api_key);
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        let body = serde_json::json!({
+            "fields": {
+                "name": { "stringValue": name },
+                "url": { "stringValue": url },
+                "timestamp": { "integerValue": timestamp.to_string() }
+            }
+        });
+
+        println!("🌟 [DB] Добавляю спонсора: {}", name);
+
+        let response = self.client
+            .post(&firestore_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore ADD SPONSOR error: {}", err_text).into());
+        }
+
+        let doc: FirestoreDocument = response.json().await?;
+        let sponsor = self.parse_sponsor(&doc)
+            .map_err(|e| format!("Failed to parse created sponsor: {}", e))?;
+
+        Ok(sponsor)
+    }
+
+    /// Удалить спонсора (только для админа)
+    pub async fn delete_sponsor(&self, id_token: &str, sponsor_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("{}/sponsors/{}?key={}", self.base_url(), sponsor_id, self.api_key);
+
+        let response = self.client
+            .delete(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore DELETE SPONSOR error: {}", err_text).into());
+        }
+
+        Ok(())
     }
 }
