@@ -28,21 +28,21 @@ struct FirestoreDocument {
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
 enum FirestoreValue {
-    String { stringValue: String },
-    Integer { integerValue: String }, // Firestore returns integers as strings
+    String { #[serde(rename = "stringValue")] string_value: String },
+    Integer { #[serde(rename = "integerValue")] integer_value: String }, // Firestore returns integers as strings
 }
 
 fn get_string_field(fields: &HashMap<String, FirestoreValue>, key: &str) -> Result<String, String> {
     match fields.get(key) {
-        Some(FirestoreValue::String { stringValue }) => Ok(stringValue.clone()),
+        Some(FirestoreValue::String { string_value }) => Ok(string_value.clone()),
         _ => Err(format!("Missing or invalid string field: {}", key)),
     }
 }
 
 fn get_integer_field(fields: &HashMap<String, FirestoreValue>, key: &str) -> Result<i64, String> {
     match fields.get(key) {
-        Some(FirestoreValue::Integer { integerValue }) => {
-            integerValue.parse::<i64>().map_err(|e| e.to_string())
+        Some(FirestoreValue::Integer { integer_value }) => {
+            integer_value.parse::<i64>().map_err(|e| e.to_string())
         }
         _ => Err(format!("Missing or invalid integer field: {}", key)),
     }
