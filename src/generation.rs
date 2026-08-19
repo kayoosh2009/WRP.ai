@@ -139,3 +139,54 @@ pub async fn generate_rp_response(
     let ollama_response: OllamaResponse = response.json().await?;
     Ok(ollama_response.message.content)
 }
+
+// Добавь это в конец файла generation.rs
+
+/// Промпт для ИИ-модератора. Меняй этот текст по своему усмотрению прямо в коде.
+pub const MODERATION_PROMPT: &str = 
+    "Ты — строгий, но справедливый фильтр безопасности для ролевой игры. Твоя задача: проверить предоставленный текст на наличие запрещенного контента (чрезмерная жестокость, нецензурная лексика, нарушения правил платформы). \
+    Если текст нарушает правила, ПЕРЕПИШИ его, сделав безопасным, но сохранив общий смысл, стиль и личность персонажа. \
+    Если текст полностью безопасен, верни его БЕЗ ИЗМЕНЕНИЙ. \
+    ВАЖНО: Верни только итоговый исправленный (или оригинальный) текст, без каких-либо комментариев, пояснений или слов вроде 'Текст безопасен'.";
+
+/// Проверяет и при необходимости исправляет сгенерированный текст с помощью ИИ
+pub async fn moderate_and_fix_response(
+    client: &Client,
+    token_manager: &TokenManager,
+    initial_reply: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты.")?;
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: MODERATION_PROMPT.to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: format!("Текст для проверки и исправления:\n\n{}", initial_reply),
+        },
+    ];
+
+    let request_payload = OllamaRequest {
+        model: "gemma4:cloud".to_string(), // Можешь изменить на более легкую модель (например, "llama3.2:3b") для ускорения модерации
+        messages,
+        stream: false,
+    };
+
+    let response = client
+        .post("https://ollama.com/api/chat")
+        .header("Authorization", format!("Bearer {}", _guard.token))
+        .header("Content-Type", "application/json")
+        .json(&request_payload)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await?;
+        return Err(format!("Ollama API ошибка при модерации: {}", err_text).into());
+    }
+
+    let ollama_response: OllamaResponse = response.json().await?;
+    Ok(ollama_response.message.content.trim().to_string())
+}
