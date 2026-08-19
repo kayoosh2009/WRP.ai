@@ -258,26 +258,26 @@ async fn send_chat_message_handler(
 
     // 2. Достаём историю чата этого пользователя с персонажем
     let history = state.db.get_chat_history(&user.id_token, &char_id, &user.uid).await.unwrap_or_default();
-    
+
     let language_instruction = match character.language.as_str() {
         "ru" => "Отвечай строго на русском языке.".to_string(),
         "en" => "Respond strictly in English.".to_string(),
         other => format!("Respond strictly in the following language: {}.", other),
     };
-    
+
     let violence_instruction = match character.violence_level.as_str() {
         "mild" => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
         "medium" => "Moderate intensity is allowed: conflict and peril are fine, but avoid graphic gore or extreme cruelty.",
         "graphic" => "Dark and intense themes are allowed, including graphic violence, as fits the narrative.",
         _ => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
     };
-    
+
     let length_instruction = match payload.response_length.as_str() {
         "short" => "Keep your response very brief: 1-2 short sentences maximum.",
         "long" => "Write a detailed, immersive response with rich description, at least a few paragraphs.",
         _ => "Keep your response moderate in length: a short paragraph or two.",
     };
-    
+
     let settings = GenerationSettings {
         char_prompt: character.internal_prompt.clone(),
         rules: format!(
@@ -285,9 +285,8 @@ async fn send_chat_message_handler(
             language_instruction, violence_instruction, length_instruction
         ),
     };
-
-    // 3. Генерируем первоначальный ответ ИИ (черновик)
-    let initial_reply = generation::generate_rp_response(
+    // 3. Генерируем ответ ИИ
+    let reply = generation::generate_rp_response(
         &state.http_client,
         &state.token_manager,
         &payload.message,
@@ -297,38 +296,6 @@ async fn send_chat_message_handler(
         eprintln!("❌ Ошибка генерации ответа: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-
-    // 3.5. Модерация и исправление ответа (использует константу MODERATION_PROMPT из generation.rs)
-    let final_reply = generation::moderate_and_fix_response(
-        &state.http_client,
-        &state.token_manager,
-        &initial_reply,
-    ).await.map_err(|e| {
-        eprintln!("❌ Ошибка модерации ответа: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    // 4. Сохраняем сообщения в историю (сохраняем уже ПРОВЕРЕННЫЙ final_reply)
-    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
-        eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
-    }
-    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "assistant", &final_reply).await {
-        eprintln!("⚠️ Не удалось сохранить ответ ассистента: {}", e);
-    }
-
-    // 5. Инкрементируем счётчик сообщений персонажа
-    if let Err(e) = state.db.increment_message_count(&user.id_token, &char_id).await {
-        eprintln!("⚠️ Не удалось обновить счётчик сообщений: {}", e);
-    }
-
-    // 6. Инкрементируем личную статистику пользователя
-    if let Err(e) = state.db.increment_user_message_count(&user.id_token, &user.uid).await {
-        eprintln!("⚠️ Не удалось обновить статистику пользователя: {}", e);
-    }
-
-    // Возвращаем пользователю уже проверенный текст
-    Ok(Json(ChatMessageResponse { reply: final_reply }))
-}
 
     // 4. Сохраняем оба сообщения в историю
     if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
