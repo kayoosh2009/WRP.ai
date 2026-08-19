@@ -136,6 +136,92 @@ pub async fn generate_rp_response(
         return Err(format!("Ollama API ошибка: {}", err_text).into());
     }
 
+        let ollama_response: OllamaResponse = response.json().await?;
+        let draft = ollama_response.message.content;
+
+        if needs_moderation(&draft) {
+            match moderate_response(client, token_manager, &draft).await {
+                Ok(safe_text) => Ok(safe_text),
+                Err(e) => {
+                    eprintln!("⚠️ Модерация недоступна, отдаём черновик: {}", e);
+                    Ok(draft)
+                }
+            }
+        } else {
+            Ok(draft)
+        }
+    }
+
+    /// Быстрая локальная проверка без сетевого запроса.
+    /// Если ни одно слово-триггер не найдено — пропускаем тяжёлую модерацию через LLM.
+    fn needs_moderation(text: &str) -> bool {
+        // Категории тем, при упоминании которых стоит перепроверить ответ.
+        // Список специально широкий и "с запасом" — задача этого фильтра не решить,
+        // есть ли нарушение, а лишь отсеять заведомо безопасные сообщения.
+        const TRIGGER_WORDS: &[&str] = &[
+            // наркотики / вещества
+            "наркотик", "нарко", "кокаин", "героин", "амфетамин", "мефедрон",
+            "передозировк", "таблетк", "препарат",
+            // оружие / взрывчатка
+            "оружи", "пистолет", "взрывчат", "бомба", "патрон",
+            // самоповреждение / суицид
+            "суицид", "самоубийств", "порез", "вены",
+            // насилие / незаконное
+            "убий", "изнасил", "похищени", "теракт",
+            // несовершеннолетние в опасном контексте
+            "несовершеннолетн", "малолетн",
+        ];
+
+        let lower = text.to_lowercase();
+        TRIGGER_WORDS.iter().any(|w| lower.contains(w))
+    }
+}
+
+const MODERATION_PROMPT: &str = "\
+Ты — модератор текста ролевого чата. Тебе присылают ответ ИИ-персонажа игроку.\n\
+Твоя задача:\n\
+1. Проверь текст на: инструкции по созданию оружия/наркотиков/взрывчатки, реальные незаконные действия с пошаговыми деталями, сексуализацию несовершеннолетних, разжигание ненависти.\n\
+2. Если ничего из этого нет — верни текст БЕЗ ИЗМЕНЕНИЙ.\n\
+3. Если есть — перепиши ТОЛЬКО проблемные фрагменты так, чтобы сюжет и персонаж сохранились, но опасные детали исчезли (например, замени конкретный рецепт/инструкцию на общее описание \"персонаж уклончиво отвечает\" или похожее по духу сцены действие).\n\
+4. Не добавляй никаких пояснений, дисклеймеров или комментариев от себя — ответь только финальным текстом, который увидит пользователь.";
+
+async fn moderate_response(
+    client: &Client,
+    token_manager: &TokenManager,
+    draft: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты (модерация).")?;
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: MODERATION_PROMPT.to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: draft.to_string(),
+        },
+    ];
+
+    let request_payload = OllamaRequest {
+        model: "gemma4:cloud".to_string(),
+        messages,
+        stream: false,
+    };
+
+    let response = client
+        .post("https://ollama.com/api/chat")
+        .header("Authorization", format!("Bearer {}", _guard.token))
+        .header("Content-Type", "application/json")
+        .json(&request_payload)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await?;
+        return Err(format!("Ollama API ошибка (модерация): {}", err_text).into());
+    }
+
     let ollama_response: OllamaResponse = response.json().await?;
     Ok(ollama_response.message.content)
 }
