@@ -286,8 +286,8 @@ async fn send_chat_message_handler(
         ),
     };
 
-    // 3. Генерируем ответ ИИ
-    let reply = generation::generate_rp_response(
+        // 3. Генерируем первоначальный ответ ИИ (черновик)
+    let initial_reply = generation::generate_rp_response(
         &state.http_client,
         &state.token_manager,
         &payload.message,
@@ -298,10 +298,37 @@ async fn send_chat_message_handler(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    // 4. Сохраняем оба сообщения в историю
-    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await { ... }
-    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, 
+    // 3.5. Модерация и исправление ответа (использует константу MODERATION_PROMPT из generation.rs)
+    let final_reply = generation::moderate_and_fix_response(
+        &state.http_client,
+        &state.token_manager,
+        &initial_reply,
+    ).await.map_err(|e| {
+        eprintln!("❌ Ошибка модерации ответа: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
+    // 4. Сохраняем сообщения в историю (сохраняем уже ПРОВЕРЕННЫЙ final_reply)
+    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
+        eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
+    }
+    if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "assistant", &final_reply).await {
+        eprintln!("⚠️ Не удалось сохранить ответ ассистента: {}", e);
+    }
+
+    // 5. Инкрементируем счётчик сообщений персонажа
+    if let Err(e) = state.db.increment_message_count(&user.id_token, &char_id).await {
+        eprintln!("⚠️ Не удалось обновить счётчик сообщений: {}", e);
+    }
+
+    // 6. Инкрементируем личную статистику пользователя
+    if let Err(e) = state.db.increment_user_message_count(&user.id_token, &user.uid).await {
+        eprintln!("⚠️ Не удалось обновить статистику пользователя: {}", e);
+    }
+
+    // Возвращаем пользователю уже проверенный текст
+    Ok(Json(ChatMessageResponse { reply: final_reply }))
+    
     // 4. Сохраняем оба сообщения в историю
     if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
         eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
