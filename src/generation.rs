@@ -136,45 +136,36 @@ pub async fn generate_rp_response(
         return Err(format!("Ollama API ошибка: {}", err_text).into());
     }
 
-        let ollama_response: OllamaResponse = response.json().await?;
-        let draft = ollama_response.message.content;
+    let ollama_response: OllamaResponse = response.json().await?;
+    let draft = ollama_response.message.content;
 
-        if needs_moderation(&draft) {
-            match moderate_response(client, token_manager, &draft).await {
-                Ok(safe_text) => Ok(safe_text),
-                Err(e) => {
-                    eprintln!("⚠️ Модерация недоступна, отдаём черновик: {}", e);
-                    Ok(draft)
-                }
+    if needs_moderation(&draft) {
+        match moderate_response(client, token_manager, &draft).await {
+            Ok(safe_text) => Ok(safe_text),
+            Err(e) => {
+                eprintln!("⚠️ Модерация недоступна, отдаём черновик: {}", e);
+                Ok(draft)
             }
-        } else {
-            Ok(draft)
         }
+    } else {
+        Ok(draft)
     }
+}
 
-    /// Быстрая локальная проверка без сетевого запроса.
-    /// Если ни одно слово-триггер не найдено — пропускаем тяжёлую модерацию через LLM.
-    fn needs_moderation(text: &str) -> bool {
-        // Категории тем, при упоминании которых стоит перепроверить ответ.
-        // Список специально широкий и "с запасом" — задача этого фильтра не решить,
-        // есть ли нарушение, а лишь отсеять заведомо безопасные сообщения.
-        const TRIGGER_WORDS: &[&str] = &[
-            // наркотики / вещества
-            "наркотик", "нарко", "кокаин", "героин", "амфетамин", "мефедрон",
-            "передозировк", "таблетк", "препарат",
-            // оружие / взрывчатка
-            "оружи", "пистолет", "взрывчат", "бомба", "патрон",
-            // самоповреждение / суицид
-            "суицид", "самоубийств", "порез", "вены",
-            // насилие / незаконное
-            "убий", "изнасил", "похищени", "теракт",
-            // несовершеннолетние в опасном контексте
-            "несовершеннолетн", "малолетн",
-        ];
+/// Быстрая локальная проверка без сетевого запроса.
+/// Если ни одно слово-триггер не найдено — пропускаем тяжёлую модерацию через LLM.
+fn needs_moderation(text: &str) -> bool {
+    const TRIGGER_WORDS: &[&str] = &[
+        "наркотик", "нарко", "кокаин", "героин", "амфетамин", "мефедрон",
+        "передозировк", "таблетк", "препарат",
+        "оружи", "пистолет", "взрывчат", "бомба", "патрон",
+        "суицид", "самоубийств", "порез", "вены",
+        "убий", "изнасил", "похищени", "теракт",
+        "несовершеннолетн", "малолетн",
+    ];
 
-        let lower = text.to_lowercase();
-        TRIGGER_WORDS.iter().any(|w| lower.contains(w))
-    }
+    let lower = text.to_lowercase();
+    TRIGGER_WORDS.iter().any(|w| lower.contains(w))
 }
 
 const MODERATION_PROMPT: &str = "\
