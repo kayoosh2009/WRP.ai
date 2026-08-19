@@ -36,8 +36,11 @@ struct FirebaseClaims {
     email: Option<String>,
     name: Option<String>,
     picture: Option<String>,
+    #[allow(dead_code)]
     aud: String,
+    #[allow(dead_code)]
     iss: String,
+    #[allow(dead_code)]
     exp: usize,
 }
 
