@@ -258,26 +258,26 @@ async fn send_chat_message_handler(
 
     // 2. Достаём историю чата этого пользователя с персонажем
     let history = state.db.get_chat_history(&user.id_token, &char_id, &user.uid).await.unwrap_or_default();
-
+    
     let language_instruction = match character.language.as_str() {
         "ru" => "Отвечай строго на русском языке.".to_string(),
         "en" => "Respond strictly in English.".to_string(),
         other => format!("Respond strictly in the following language: {}.", other),
     };
-
+    
     let violence_instruction = match character.violence_level.as_str() {
         "mild" => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
         "medium" => "Moderate intensity is allowed: conflict and peril are fine, but avoid graphic gore or extreme cruelty.",
         "graphic" => "Dark and intense themes are allowed, including graphic violence, as fits the narrative.",
         _ => "Keep the story family-friendly, avoid graphic violence or gore entirely.",
     };
-
+    
     let length_instruction = match payload.response_length.as_str() {
         "short" => "Keep your response very brief: 1-2 short sentences maximum.",
         "long" => "Write a detailed, immersive response with rich description, at least a few paragraphs.",
         _ => "Keep your response moderate in length: a short paragraph or two.",
     };
-
+    
     let settings = GenerationSettings {
         char_prompt: character.internal_prompt.clone(),
         rules: format!(
@@ -286,7 +286,7 @@ async fn send_chat_message_handler(
         ),
     };
 
-        // 3. Генерируем первоначальный ответ ИИ (черновик)
+    // 3. Генерируем первоначальный ответ ИИ (черновик)
     let initial_reply = generation::generate_rp_response(
         &state.http_client,
         &state.token_manager,
@@ -328,7 +328,8 @@ async fn send_chat_message_handler(
 
     // Возвращаем пользователю уже проверенный текст
     Ok(Json(ChatMessageResponse { reply: final_reply }))
-    
+}
+
     // 4. Сохраняем оба сообщения в историю
     if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
         eprintln!("⚠️ Не удалось сохранить сообщение пользователя: {}", e);
