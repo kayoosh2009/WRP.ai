@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Серверы — WRP.ai</title>
+    <link rel="icon" href="img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Верхняя панель (Header) -->
+    <header class="top-bar">
+        <div class="header-left">
+            <a href="/" style="display:flex; align-items:center;">
+                <div class="logo">WRP.ai</div>
+            </a>
+        </div>
+        <div class="header-right">
+            <div class="user-avatar">
+                <span class="login-hint">Статистика серверов</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-page">
+        <h2>🖥️ Серверы</h2>
+
+        <div class="stats-grid" id="summaryGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotalMonth">—</div>
+                <div class="stat-label">Токенов за этот месяц</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statTotalAllTime">—</div>
+                <div class="stat-label">Токенов за всё время</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statTopServer">—</div>
+                <div class="stat-label">Самый нагруженный</div>
+            </div>
+        </div>
+
+        <div class="admin-characters-list" id="serversList">
+            <p class="loading-text">Loading...</p>
+        </div>
+    </main>
+
+    <script>
+        function formatNumber(n) {
+            return new Intl.NumberFormat('ru-RU').format(n || 0);
+        }
+
+        function renderServers(stats) {
+            const list = document.getElementById('serversList');
+
+            if (!Array.isArray(stats) || stats.length === 0) {
+                list.innerHTML = '<p class="loading-text">Пока нет данных — статистика появится после первых сообщений.</p>';
+                document.getElementById('statTotalMonth').textContent = '0';
+                document.getElementById('statTotalAllTime').textContent = '0';
+                document.getElementById('statTopServer').textContent = '—';
+                return;
+            }
+
+            // Список уже отсортирован бэкендом по убыванию total_all_time
+            const totalMonth = stats.reduce((sum, s) => sum + (s.current_month || 0), 0);
+            const totalAllTime = stats.reduce((sum, s) => sum + (s.total_all_time || 0), 0);
+            const top = stats[0];
+
+            document.getElementById('statTotalMonth').textContent = formatNumber(totalMonth);
+            document.getElementById('statTotalAllTime').textContent = formatNumber(totalAllTime);
+            document.getElementById('statTopServer').textContent = top.alias || '—';
+
+            list.innerHTML = stats.map((s, i) => `
+                <div class="admin-char-row">
+                    <div class="admin-char-avatar" style="display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                        ${(s.alias || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div class="admin-char-info">
+                        <div class="admin-char-name">
+                            ${escapeHtml(s.alias)} ${i === 0 ? '⭐' : ''}
+                        </div>
+                        <div class="admin-char-meta">
+                            За месяц: ${formatNumber(s.current_month)} · Всего: ${formatNumber(s.total_all_time)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        async function loadServers() {
+            const list = document.getElementById('serversList');
+            try {
+                const res = await fetch('/api/servers-stats');
+                if (!res.ok) throw new Error('Failed to fetch');
+                const stats = await res.json();
+                renderServers(stats);
+            } catch (err) {
+                console.error('Error loading server stats:', err);
+                list.innerHTML = '<p class="error-text">Не удалось загрузить статистику. Попробуйте позже.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadServers);
+    </script>
+</body>
+</html>
