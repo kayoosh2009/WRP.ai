@@ -715,4 +715,145 @@ impl FirestoreDb {
 
         Ok(())
     }
+
+    /// Записывает трату токенов по конкретному ключу ("серверу"): и в общий счётчик,
+    /// и в счётчик текущего месяца. Данные хранятся в коллекции token_usage,
+    /// сам API-ключ никогда никуда не пишется — только заранее заданный алиас.
+    pub async fn record_token_usage(
+        &self,
+        id_token: &str,
+        alias: &str,
+        tokens: i64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if tokens <= 0 {
+            return Ok(());
+        }
+
+        let doc_id = sanitize_alias_for_doc_id(alias);
+        let month_field = current_month_field();
+
+        // 1. Читаем текущие значения (если документа ещё нет — считаем их нулями)
+        let get_url = format!("{}/token_usage/{}?key={}", self.base_url(), doc_id, self.api_key);
+        let existing_fields = match self.client.get(&get_url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                resp.json::<FirestoreDocument>().await.ok().map(|d| d.fields)
+            }
+            _ => None,
+        };
+
+        let current_total = existing_fields
+            .as_ref()
+            .and_then(|f| get_integer_field(f, "total_all_time").ok())
+            .unwrap_or(0);
+        let current_month_value = existing_fields
+            .as_ref()
+            .and_then(|f| get_integer_field(f, &month_field).ok())
+            .unwrap_or(0);
+
+        let new_total = current_total + tokens;
+        let new_month_value = current_month_value + tokens;
+
+        // 2. Пишем алиас (для читаемости) + оба счётчика одним PATCH-запросом
+        let patch_url = format!(
+            "{}/token_usage/{}?key={}&updateMask.fieldPaths=alias&updateMask.fieldPaths=total_all_time&updateMask.fieldPaths={}",
+            self.base_url(), doc_id, self.api_key, month_field
+        );
+
+        let mut fields_map = serde_json::Map::new();
+        fields_map.insert("alias".to_string(), serde_json::json!({ "stringValue": alias }));
+        fields_map.insert("total_all_time".to_string(), serde_json::json!({ "integerValue": new_total.to_string() }));
+        fields_map.insert(month_field, serde_json::json!({ "integerValue": new_month_value.to_string() }));
+
+        let body = serde_json::json!({ "fields": fields_map });
+
+        let response = self.client
+            .patch(&patch_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore RECORD TOKEN USAGE error: {}", err_text).into());
+        }
+
+        Ok(())
+    }
+
+    /// Получить статистику по всем ключам ("серверам"): сколько потрачено всего
+    /// и сколько за текущий месяц. Отсортировано по убыванию total_all_time
+    /// (первый в списке — самый нагруженный ключ).
+    pub async fn get_token_usage_stats(&self) -> Result<Vec<TokenUsageStat>, Box<dyn std::error::Error>> {
+        let url = format!("{}/token_usage?key={}", self.base_url(), self.api_key);
+
+        let response = self.client.get(&url).send().await?;
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(Vec::new());
+            }
+            let err_text = response.text().await?;
+            return Err(format!("Firestore GET TOKEN USAGE error: {}", err_text).into());
+        }
+
+        let list_response: FirestoreListResponse = response.json().await?;
+        let month_field = current_month_field();
+        let mut stats = Vec::new();
+
+        for doc in &list_response.documents {
+            let alias = get_string_field(&doc.fields, "alias")
+                .unwrap_or_else(|_| doc.name.split('/').last().unwrap_or("unknown").to_string());
+            let total_all_time = get_integer_field(&doc.fields, "total_all_time").unwrap_or(0);
+            let current_month = get_integer_field(&doc.fields, &month_field).unwrap_or(0);
+
+            stats.push(TokenUsageStat {
+                alias,
+                total_all_time,
+                current_month,
+            });
+        }
+
+        stats.sort_by(|a, b| b.total_all_time.cmp(&a.total_all_time));
+
+        Ok(stats)
+    }
+}
+
+/// Firestore doc ID не должен содержать "странные" символы — приводим алиас к безопасному виду
+fn sanitize_alias_for_doc_id(alias: &str) -> String {
+    let cleaned: String = alias
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' })
+        .collect();
+    if cleaned.is_empty() {
+        "unnamed".to_string()
+    } else {
+        cleaned
+    }
+}
+
+/// Имя поля в Firestore для текущего месяца, например "month_2026_08"
+fn current_month_field() -> String {
+    let ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let (year, month) = year_month_from_millis(ms);
+    format!("month_{:04}_{:02}", year, month)
+}
+
+/// (год, месяц) из UNIX-времени в миллисекундах, без внешних крейтов вроде chrono.
+/// Стандартный алгоритм civil_from_days (Howard Hinnant), работает для григорианского календаря.
+fn year_month_from_millis(ms: i64) -> (i64, u32) {
+    let days = ms.div_euclid(86_400_000);
+    let z = days + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = (z - era * 146097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let m: i64 = if mp < 10 { mp as i64 + 3 } else { mp as i64 - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    (y, m as u32)
 }
