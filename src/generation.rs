@@ -18,10 +18,17 @@ struct OllamaRequest {
 #[derive(Deserialize)]
 struct OllamaResponse {
     message: Message,
+    // Ollama при stream:false возвращает эти поля в корне ответа.
+    // Если API их не пришлёт — по умолчанию 0, чтобы не падать.
+    #[serde(default)]
+    prompt_eval_count: u64,
+    #[serde(default)]
+    eval_count: u64,
 }
 
 pub struct TokenState {
     pub token: String,
+    pub alias: String, // человекочитаемое имя ключа ("сервера"), задаётся через имя переменной в .env
     pub is_busy: bool,
 }
 
@@ -37,8 +44,23 @@ impl TokenManager {
         for (key, value) in std::env::vars() {
             // Берем только те, что начинаются с OLLAMA_API_KEY и не пустые
             if key.starts_with("OLLAMA_API_KEY") && !value.trim().is_empty() {
+                // Алиас — это "хвост" имени переменной после OLLAMA_API_KEY.
+                // Например OLLAMA_API_KEY_MAIN -> алиас "MAIN".
+                // Если хвоста нет (переменная называется просто OLLAMA_API_KEY) — даём номер.
+                let suffix = key
+                    .strip_prefix("OLLAMA_API_KEY")
+                    .unwrap_or("")
+                    .trim_start_matches('_');
+
+                let alias = if suffix.is_empty() {
+                    format!("KEY_{}", states.len() + 1)
+                } else {
+                    suffix.to_string()
+                };
+
                 states.push(TokenState {
                     token: value.trim().to_string(),
+                    alias,
                     is_busy: false,
                 });
             }
@@ -47,7 +69,8 @@ impl TokenManager {
         if states.is_empty() {
             println!("⚠️ Токены OLLAMA_API_KEY_* не найдены в .env. Генерация ответов будет недоступна, пока не будет добавлен хотя бы один токен.");
         } else {
-            println!("✅ Загружено {} отдельных токенов из .env", states.len());
+            let aliases: Vec<&str> = states.iter().map(|s| s.alias.as_str()).collect();
+            println!("✅ Загружено {} отдельных токенов из .env: {:?}", states.len(), aliases);
         }
 
         Self {
@@ -63,6 +86,7 @@ impl TokenManager {
                 return Some(TokenGuard {
                     index: i,
                     token: state.token.clone(),
+                    alias: state.alias.clone(),
                     manager: self.tokens.clone(),
                 });
             }
@@ -73,8 +97,8 @@ impl TokenManager {
 
 pub struct TokenGuard {
     index: usize,
-    #[allow(dead_code)]
-    token: String,
+    pub token: String,
+    pub alias: String,
     manager: Arc<Mutex<Vec<TokenState>>>,
 }
 
@@ -93,13 +117,26 @@ pub struct GenerationSettings {
     pub rules: String,
 }
 
+/// Сколько токенов и на каком ключе ("сервере") было потрачено за один вызов
+pub struct TokenUsage {
+    pub alias: String,
+    pub tokens: i64,
+}
+
+/// Результат генерации: сам ответ + список трат по ключам
+/// (обычно 1 запись — генерация; 2, если сработала модерация)
+pub struct GenerationResult {
+    pub reply: String,
+    pub usage: Vec<TokenUsage>,
+}
+
 pub async fn generate_rp_response(
     client: &Client,
     token_manager: &TokenManager,
     user_input: &str,
     history: Vec<Message>,
     settings: &GenerationSettings,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<GenerationResult, Box<dyn std::error::Error>> {
     let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты.")?;
 
     let system_content = format!(
@@ -138,17 +175,29 @@ pub async fn generate_rp_response(
 
     let ollama_response: OllamaResponse = response.json().await?;
     let draft = ollama_response.message.content;
+    let gen_tokens = (ollama_response.prompt_eval_count + ollama_response.eval_count) as i64;
+
+    let mut usage = vec![TokenUsage {
+        alias: _guard.alias.clone(),
+        tokens: gen_tokens,
+    }];
 
     if needs_moderation(&draft) {
         match moderate_response(client, token_manager, &draft).await {
-            Ok(safe_text) => Ok(safe_text),
+            Ok((safe_text, mod_alias, mod_tokens)) => {
+                usage.push(TokenUsage {
+                    alias: mod_alias,
+                    tokens: mod_tokens as i64,
+                });
+                Ok(GenerationResult { reply: safe_text, usage })
+            }
             Err(e) => {
                 eprintln!("⚠️ Модерация недоступна, отдаём черновик: {}", e);
-                Ok(draft)
+                Ok(GenerationResult { reply: draft, usage })
             }
         }
     } else {
-        Ok(draft)
+        Ok(GenerationResult { reply: draft, usage })
     }
 }
 
@@ -176,11 +225,12 @@ const MODERATION_PROMPT: &str = "\
 3. Если есть — перепиши ТОЛЬКО проблемные фрагменты так, чтобы сюжет и персонаж сохранились, но опасные детали исчезли (например, замени конкретный рецепт/инструкцию на общее описание \"персонаж уклончиво отвечает\" или похожее по духу сцены действие).\n\
 4. Не добавляй никаких пояснений, дисклеймеров или комментариев от себя — ответь только финальным текстом, который увидит пользователь.";
 
+/// Возвращает (безопасный текст, алиас ключа, потрачено токенов)
 async fn moderate_response(
     client: &Client,
     token_manager: &TokenManager,
     draft: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<(String, String, u64), Box<dyn std::error::Error>> {
     let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты (модерация).")?;
 
     let messages = vec![
@@ -214,5 +264,6 @@ async fn moderate_response(
     }
 
     let ollama_response: OllamaResponse = response.json().await?;
-    Ok(ollama_response.message.content)
+    let tokens = ollama_response.prompt_eval_count + ollama_response.eval_count;
+    Ok((ollama_response.message.content, _guard.alias.clone(), tokens))
 }
