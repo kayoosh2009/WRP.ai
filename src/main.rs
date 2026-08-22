@@ -70,8 +70,7 @@ async fn main() {
         .route("/api/firebase-config", get(get_firebase_config_handler))
         .route("/api/comments", get(get_comments_handler))
         .route("/api/notifications", get(get_notifications_handler))
-        .route("/api/sponsors", get(get_sponsors_handler))
-        .route("/api/servers-stats", get(get_servers_stats_handler));
+        .route("/api/sponsors", get(get_sponsors_handler));
 
     let app = Router::new()
         .merge(public_routes)
