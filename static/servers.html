@@ -49,7 +49,11 @@
         </div>
     </main>
 
-    <script>
+    <script type="module">
+        import { requireAuthOrRedirect, authFetch } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+
         function formatNumber(n) {
             return new Intl.NumberFormat('ru-RU').format(n || 0);
         }
@@ -100,8 +104,8 @@
         async function loadServers() {
             const list = document.getElementById('serversList');
             try {
-                const res = await fetch('/api/servers-stats');
-                if (!res.ok) throw new Error('Failed to fetch');
+                const res = await authFetch('/api/servers-stats');
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
                 const stats = await res.json();
                 renderServers(stats);
             } catch (err) {
@@ -110,7 +114,9 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadServers);
+        if (user) {
+            loadServers();
+        }
     </script>
 </body>
 </html>
