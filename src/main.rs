@@ -567,10 +567,3 @@ async fn delete_sponsor_handler(
         }
     }
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TokenUsageStat {
-    pub alias: String,
-    pub total_all_time: i64,
-    pub current_month: i64,
-}
