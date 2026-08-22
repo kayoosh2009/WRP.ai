@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use crate::model::{RpCharacter, Comment};
 use crate::generation::Message;
+use crate::model::TokenUsageStat;
 
 pub struct FirestoreDb {
     client: Client,
