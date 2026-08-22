@@ -514,6 +514,19 @@ async fn get_sponsors_handler(
     }
 }
 
+// GET /api/servers-stats — публичная статистика нагрузки по ключам (без самих ключей, только алиасы)
+async fn get_servers_stats_handler(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<model::TokenUsageStat>>, StatusCode> {
+    match state.db.get_token_usage_stats().await {
+        Ok(stats) => Ok(Json(stats)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении статистики токенов: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
 // POST /api/admin/sponsors — добавить спонсора (только для админа)
 async fn add_sponsor_handler(
     State(state): State<AppState>,
