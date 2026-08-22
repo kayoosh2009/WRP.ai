@@ -784,10 +784,14 @@ impl FirestoreDb {
     /// Получить статистику по всем ключам ("серверам"): сколько потрачено всего
     /// и сколько за текущий месяц. Отсортировано по убыванию total_all_time
     /// (первый в списке — самый нагруженный ключ).
-    pub async fn get_token_usage_stats(&self) -> Result<Vec<TokenUsageStat>, Box<dyn std::error::Error>> {
+    pub async fn get_token_usage_stats(&self, id_token: &str) -> Result<Vec<TokenUsageStat>, Box<dyn std::error::Error>> {
         let url = format!("{}/token_usage?key={}", self.base_url(), self.api_key);
 
-        let response = self.client.get(&url).send().await?;
+        let response = self.client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
         if !response.status().is_success() {
             if response.status().as_u16() == 404 {
                 return Ok(Vec::new());

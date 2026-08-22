@@ -52,6 +52,7 @@ async fn main() {
         .route("/api/comments", post(add_comment_handler))
         .route("/api/profile/stats", get(get_profile_stats_handler))
         .route("/api/profile/characters", get(get_profile_characters_handler))
+        .route("/api/servers-stats", get(get_servers_stats_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_auth));
 
     // Роуты только для админа
@@ -517,8 +518,9 @@ async fn get_sponsors_handler(
 // GET /api/servers-stats — публичная статистика нагрузки по ключам (без самих ключей, только алиасы)
 async fn get_servers_stats_handler(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
 ) -> Result<Json<Vec<model::TokenUsageStat>>, StatusCode> {
-    match state.db.get_token_usage_stats().await {
+    match state.db.get_token_usage_stats(&user.id_token).await {
         Ok(stats) => Ok(Json(stats)),
         Err(e) => {
             eprintln!("❌ Ошибка при получении статистики токенов: {}", e);
