@@ -45,3 +45,10 @@ pub struct Sponsor {
     pub url: String,
     pub timestamp: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TokenUsageStat {
+    pub alias: String,        // название сервера/ключа, которое ты сам задал
+    pub total_all_time: i64,  // потрачено токенов за всё время
+    pub current_month: i64,   // потрачено токенов в текущем месяце
+}

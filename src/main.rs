@@ -27,13 +27,6 @@ pub struct AppState {
     pub http_client: Client,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TokenUsageStat {
-    pub alias: String,        // название сервера/ключа, которое ты сам задал
-    pub total_all_time: i64,  // потрачено токенов за всё время
-    pub current_month: i64,   // потрачено токенов в текущем месяце
-}
-
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
