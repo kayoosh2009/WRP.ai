@@ -294,7 +294,7 @@ async fn send_chat_message_handler(
         ),
     };
     // 3. Генерируем ответ ИИ
-    let reply = generation::generate_rp_response(
+    let generation_result = generation::generate_rp_response(
         &state.http_client,
         &state.token_manager,
         &payload.message,
@@ -304,6 +304,14 @@ async fn send_chat_message_handler(
         eprintln!("❌ Ошибка генерации ответа: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+    let reply = generation_result.reply;
+
+    // 3.5 Записываем, сколько токенов потрачено и на каком ключе
+    for usage in &generation_result.usage {
+        if let Err(e) = state.db.record_token_usage(&user.id_token, &usage.alias, usage.tokens).await {
+            eprintln!("⚠️ Не удалось записать статистику токенов ({}): {}", usage.alias, e);
+        }
+    }
 
     // 4. Сохраняем оба сообщения в историю
     if let Err(e) = state.db.save_message(&user.id_token, &char_id, &user.uid, "user", &payload.message).await {
@@ -565,4 +573,11 @@ async fn delete_sponsor_handler(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TokenUsageStat {
+    pub alias: String,
+    pub total_all_time: i64,
+    pub current_month: i64,
 }
