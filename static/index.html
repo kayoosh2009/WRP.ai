@@ -260,7 +260,7 @@
                         ${needsToggle ? '<button type="button" class="desc-toggle-btn">more...</button>' : ''}
                     </p>
                     <div class="card-stats"><span>💬 ${char.message_count} messages</span></div>
-                    <button class="chat-btn" onclick="startChat('${char.id}')">Start Chat</button>
+                    <button class="chat-btn" onclick="startChat('${char.id}', event)">Start Chat</button>
                 </div>
             `;
 
@@ -373,7 +373,8 @@
             }
         });
 
-        window.startChat = function (charId) {
+        window.startChat = function (charId, event) {
+            if (event) event.stopPropagation();
             if (!getCachedUser()) {
                 window.location.href = '/login.html';
                 return;
