@@ -52,3 +52,13 @@ pub struct TokenUsageStat {
     pub total_all_time: i64,  // потрачено токенов за всё время
     pub current_month: i64,   // потрачено токенов в текущем месяце
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChatSummary {
+    pub char_id: String,
+    pub char_name: String,
+    pub avatar_url: String,
+    pub last_message: String,
+    pub last_role: String,   // "user" | "assistant" — чтобы фронт мог показать "You: ..." или просто текст
+    pub last_timestamp: i64,
+}

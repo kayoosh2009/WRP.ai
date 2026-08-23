@@ -314,6 +314,63 @@ impl FirestoreDb {
         Ok(messages.into_iter().map(|(_, m)| m).collect())
     }
 
+    /// Список чатов пользователя: для каждого персонажа, с которым есть переписка,
+    /// отдаёт последнее сообщение. Отсортировано по убыванию времени последнего сообщения
+    /// (сверху — самый свежий диалог).
+    pub async fn get_user_chat_summaries(
+        &self,
+        id_token: &str,
+        uid: &str,
+    ) -> Result<Vec<crate::model::ChatSummary>, Box<dyn std::error::Error>> {
+        let characters = self.get_all_characters().await?;
+        let mut summaries = Vec::new();
+
+        for character in characters {
+            let url = format!(
+                "{}/characters/{}/chats/{}/messages?key={}",
+                self.base_url(),
+                character.id,
+                uid,
+                self.api_key
+            );
+
+            let response = self.client
+                .get(&url)
+                .header("Authorization", format!("Bearer {}", id_token))
+                .send()
+                .await?;
+
+            if !response.status().is_success() {
+                continue; // нет чата с этим персонажем — пропускаем
+            }
+
+            let list_response: FirestoreListResponse = response.json().await?;
+            let mut messages: Vec<(i64, Message)> = Vec::new();
+            for doc in &list_response.documents {
+                if let Ok(parsed) = self.parse_message(doc) {
+                    messages.push(parsed);
+                }
+            }
+            if messages.is_empty() {
+                continue;
+            }
+            messages.sort_by_key(|(ts, _)| *ts);
+            let (last_ts, last_msg) = messages.last().unwrap().clone();
+
+            summaries.push(crate::model::ChatSummary {
+                char_id: character.id,
+                char_name: character.name,
+                avatar_url: character.avatar_url,
+                last_message: last_msg.content,
+                last_role: last_msg.role,
+                last_timestamp: last_ts,
+            });
+        }
+
+        summaries.sort_by(|a, b| b.last_timestamp.cmp(&a.last_timestamp));
+        Ok(summaries)
+    }
+
 /// Удалить всю историю чата пользователя с конкретным персонажем
     pub async fn delete_chat_history(
         &self,
