@@ -530,6 +530,20 @@ async fn get_servers_stats_handler(
     }
 }
 
+// GET /api/profile/chats — список переписок текущего пользователя (для messenger.html)
+async fn get_profile_chats_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+) -> Result<Json<Vec<model::ChatSummary>>, StatusCode> {
+    match state.db.get_user_chat_summaries(&user.id_token, &user.uid).await {
+        Ok(chats) => Ok(Json(chats)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении списка чатов: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
 // POST /api/admin/sponsors — добавить спонсора (только для админа)
 async fn add_sponsor_handler(
     State(state): State<AppState>,
