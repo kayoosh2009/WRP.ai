@@ -1560,3 +1560,177 @@ body {
     font-weight: 600;
     margin: 0;
 }
+/* --- Messenger page --- */
+.messenger-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.messenger-layout {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* --- Левая колонка: список чатов --- */
+.messenger-list-pane {
+    width: 340px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--hover-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.messenger-list-header {
+    padding: 20px 20px 12px;
+    flex-shrink: 0;
+}
+
+.messenger-list-header h2 {
+    font-size: 1.2rem;
+}
+
+.messenger-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.messenger-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.messenger-list-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.messenger-list-item.active {
+    background-color: var(--card-bg);
+}
+
+.messenger-list-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--hover-bg);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.messenger-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.messenger-list-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+}
+
+.messenger-list-preview {
+    font-size: 0.8rem;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.messenger-list-time {
+    font-size: 0.7rem;
+    color: #777;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+/* --- Правая колонка: переписка --- */
+.messenger-conversation-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.messenger-empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #999;
+}
+
+.messenger-empty-icon {
+    width: 64px;
+    height: 64px;
+    opacity: 0.5;
+}
+
+.messenger-conversation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.messenger-conv-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 64px;
+    flex-shrink: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--hover-bg);
+}
+
+.messenger-back-btn {
+    display: none; /* показывается только на мобильных */
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+}
+
+/* --- Мобильная адаптация: список / переписка на весь экран --- */
+@media (max-width: 768px) {
+    .messenger-list-pane {
+        width: 100%;
+        border-right: none;
+    }
+
+    .messenger-conversation-pane {
+        display: none;
+        position: fixed;
+        top: 64px; /* высота шапки .chat-header */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--bg-dark);
+        z-index: 10;
+    }
+
+    .messenger-back-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .messenger-layout.conversation-open .messenger-list-pane {
+        display: none;
+    }
+
+    .messenger-layout.conversation-open .messenger-conversation-pane {
+        display: flex;
+    }
+}
