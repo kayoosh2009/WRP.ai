@@ -1536,3 +1536,27 @@ body {
     opacity: 0.5;
     margin-top: 4px;
 }
+
+.chats-card {
+    background-color: #1e1a1d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    min-height: 260px; /* примерно равно высоте обычной карточки с картинкой+инфо */
+    gap: 12px;
+}
+
+.chats-card-icon {
+    width: 56px;
+    height: 56px;
+    opacity: 0.9;
+}
+
+.chats-card-title {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}

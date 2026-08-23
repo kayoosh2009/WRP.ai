@@ -322,13 +322,10 @@
         function renderChatsCard() {
             const card = document.createElement('a');
             card.href = '/messenger.html';
-            card.className = 'character-card';
+            card.className = 'character-card chats-card';
             card.innerHTML = `
-                <div class="card-image" style="background-image: url('img/chat.png'); background-size: 80px; background-repeat: no-repeat; background-position: center;"></div>
-                <div class="card-info">
-                    <h3>My Chats</h3>
-                    <p class="card-desc"><span class="desc-short">All your conversations with characters</span></p>
-                </div>
+                <img src="img/chat.png" class="chats-card-icon" alt="">
+                <h3 class="chats-card-title">My Chats</h3>
             `;
             return card;
         }
