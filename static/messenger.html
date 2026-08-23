@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRP.ai — Messenger</title>
+    <link rel="icon" href="img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="messenger-page">
+
+    <header class="chat-header">
+        <a href="/" class="back-link">
+            <img src="img/back.png" alt="Back" class="back-icon">
+        </a>
+        <div class="chat-header-info">
+            <div class="logo">WRP.ai</div>
+        </div>
+    </header>
+
+    <div class="messenger-layout" id="messengerLayout">
+
+        <!-- Левая колонка: список чатов -->
+        <aside class="messenger-list-pane" id="messengerListPane">
+            <div class="messenger-list-header">
+                <h2>Chats</h2>
+            </div>
+            <div class="messenger-list" id="messengerList">
+                <p class="loading-text">Loading your chats...</p>
+            </div>
+        </aside>
+
+        <!-- Правая колонка: переписка -->
+        <section class="messenger-conversation-pane" id="messengerConversationPane">
+            <div class="messenger-empty-state" id="messengerEmptyState">
+                <img src="img/messenger-empty.png" class="messenger-empty-icon" alt="">
+                <p>Select a chat to start messaging</p>
+            </div>
+
+            <div class="messenger-conversation" id="messengerConversation" hidden>
+                <header class="messenger-conv-header">
+                    <button class="messenger-back-btn" id="messengerBackBtn" type="button">
+                        <img src="img/back.png" alt="Back" class="back-icon">
+                    </button>
+                    <div class="chat-avatar" id="convAvatar"></div>
+                    <div class="chat-header-text">
+                        <div class="chat-char-name" id="convCharName">Loading...</div>
+                        <div class="chat-char-meta" id="convCharMeta"></div>
+                    </div>
+                </header>
+
+                <main class="chat-messages" id="convMessages"></main>
+
+                <form class="chat-input-bar" id="convForm">
+                    <textarea id="convInput" placeholder="Type a message..." maxlength="2000" rows="1" required></textarea>
+                    <button type="submit" id="convSendBtn"><img src="img/send.png" alt="Send" class="send-icon"></button>
+                </form>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JS будет следующим шагом -->
+</body>
+</html>
