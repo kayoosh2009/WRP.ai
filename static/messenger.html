@@ -101,8 +101,36 @@
 
     </div>
 
+    <!-- Settings modal -->
+    <div class="modal-overlay" id="settingsModalOverlay">
+        <div class="modal-card settings-card">
+            <h3>Chat settings</h3>
+
+            <div class="settings-group">
+                <label>Response length</label>
+                <div class="settings-options" id="lengthOptions">
+                    <button type="button" class="settings-option" data-value="short">Short</button>
+                    <button type="button" class="settings-option" data-value="medium">Medium</button>
+                    <button type="button" class="settings-option" data-value="long">Long</button>
+                </div>
+            </div>
+
+            <div class="settings-group settings-toggle-row">
+                <label for="typingEffectToggle">Live typing effect</label>
+                <input type="checkbox" id="typingEffectToggle">
+            </div>
+
+            <div class="settings-group">
+                <button type="button" class="settings-danger-btn" id="deleteHistoryBtn">Delete chat history</button>
+            </div>
+
+            <button type="button" class="modal-btn-primary" id="settingsCloseBtn">Done</button>
+        </div>
+    </div>
+
     <script type="module">
         import { requireAuthOrRedirect, authFetch } from '/js/auth.js';
+        import { getSettings, saveSettings } from '/js/settings.js';
 
         const user = requireAuthOrRedirect();
 
