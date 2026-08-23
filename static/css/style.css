@@ -1671,6 +1671,11 @@ body {
     color: #999;
 }
 
+.messenger-empty-state[hidden],
+.messenger-conversation[hidden] {
+    display: none;
+}
+
 .messenger-empty-icon {
     width: 64px;
     height: 64px;
