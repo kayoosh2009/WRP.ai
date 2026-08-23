@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Серверы — WRP.ai</title>
+    <title>Servers — WRP.ai</title>
     <link rel="icon" href="img/favicon.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -27,20 +27,20 @@
     </header>
 
     <main class="admin-page">
-        <h2>🖥️ Серверы</h2>
+        <h2>🖥️ Servers</h2>
 
         <div class="stats-grid" id="summaryGrid">
             <div class="stat-card">
                 <div class="stat-value" id="statTotalMonth">—</div>
-                <div class="stat-label">Токенов за этот месяц</div>
+                <div class="stat-label">Tokens for this month</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="statTotalAllTime">—</div>
-                <div class="stat-label">Токенов за всё время</div>
+                <div class="stat-label">Tokens for all time</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="statTopServer">—</div>
-                <div class="stat-label">Самый нагруженный</div>
+                <div class="stat-label">Most Loaded Server</div>
             </div>
         </div>
 
@@ -110,7 +110,7 @@
                 renderServers(stats);
             } catch (err) {
                 console.error('Error loading server stats:', err);
-                list.innerHTML = '<p class="error-text">Не удалось загрузить статистику. Попробуйте позже.</p>';
+                list.innerHTML = '<p class="error-text">Failed to load statistics. Please try again later.</p>';
             }
         }
 
