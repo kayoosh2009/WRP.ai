@@ -210,6 +210,64 @@
         let currentCharId = null;
         const violenceLabels = { mild: 'Mild', medium: 'Medium', graphic: 'Graphic' };
 
+        // --- Settings modal ---
+        let settings = getSettings();
+        const settingsBtn = document.getElementById('convSettingsBtn');
+        const settingsOverlay = document.getElementById('settingsModalOverlay');
+        const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+        const lengthOptions = document.querySelectorAll('#lengthOptions .settings-option');
+        const typingEffectToggle = document.getElementById('typingEffectToggle');
+        const deleteHistoryBtn = document.getElementById('deleteHistoryBtn');
+
+        function refreshSettingsUi() {
+            lengthOptions.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === settings.responseLength);
+            });
+            typingEffectToggle.checked = settings.typingEffect;
+        }
+
+        settingsBtn.addEventListener('click', () => {
+            refreshSettingsUi();
+            settingsOverlay.classList.add('active');
+        });
+
+        settingsCloseBtn.addEventListener('click', () => {
+            settingsOverlay.classList.remove('active');
+        });
+
+        lengthOptions.forEach(btn => {
+            btn.addEventListener('click', () => {
+                settings.responseLength = btn.dataset.value;
+                saveSettings(settings);
+                refreshSettingsUi();
+            });
+        });
+
+        typingEffectToggle.addEventListener('change', () => {
+            settings.typingEffect = typingEffectToggle.checked;
+            saveSettings(settings);
+        });
+
+        deleteHistoryBtn.addEventListener('click', async () => {
+            if (!currentCharId) return;
+            if (!confirm('Delete this whole conversation? This cannot be undone.')) return;
+
+            deleteHistoryBtn.disabled = true;
+            deleteHistoryBtn.textContent = 'Deleting...';
+            try {
+                const res = await authFetch(`/api/chat/${currentCharId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                convMessagesEl.innerHTML = '<p class="loading-text">Say hello to start the conversation.</p>';
+                settingsOverlay.classList.remove('active');
+            } catch (err) {
+                console.error('Error deleting chat history:', err);
+                alert('Failed to delete chat history.');
+            } finally {
+                deleteHistoryBtn.disabled = false;
+                deleteHistoryBtn.textContent = 'Delete chat history';
+            }
+        });
+
         function renderMessage(role, content) {
             const wrapper = document.createElement('div');
             wrapper.className = `chat-message ${role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`;
