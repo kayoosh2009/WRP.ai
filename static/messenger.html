@@ -60,6 +60,71 @@
 
     </div>
 
-    <!-- JS будет следующим шагом -->
+    <script type="module">
+        import { requireAuthOrRedirect, authFetch } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+
+        if (user) {
+            const listEl = document.getElementById('messengerList');
+            let chats = [];
+
+            function formatTime(ts) {
+                const date = new Date(ts);
+                const now = new Date();
+                const isToday = date.toDateString() === now.toDateString();
+                return isToday
+                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : date.toLocaleDateString();
+            }
+
+            function renderChatList() {
+                if (chats.length === 0) {
+                    listEl.innerHTML = '<p class="loading-text">No conversations yet. Start chatting with a character!</p>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                chats.forEach(chat => {
+                    const item = document.createElement('div');
+                    item.className = 'messenger-list-item';
+                    item.dataset.charId = chat.char_id;
+
+                    const preview = chat.last_role === 'user' ? `You: ${chat.last_message}` : chat.last_message;
+
+                    item.innerHTML = `
+                        <div class="messenger-list-avatar" style="background-image: url('${chat.avatar_url || ''}')"></div>
+                        <div class="messenger-list-info">
+                            <div class="messenger-list-name">${chat.char_name}</div>
+                            <div class="messenger-list-preview">${preview}</div>
+                        </div>
+                        <div class="messenger-list-time">${formatTime(chat.last_timestamp)}</div>
+                    `;
+
+                    item.addEventListener('click', () => openConversation(chat.char_id));
+                    listEl.appendChild(item);
+                });
+            }
+
+            async function loadChats() {
+                try {
+                    const res = await authFetch('/api/profile/chats');
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    chats = await res.json();
+                    renderChatList();
+
+                    // Если пришли по прямой ссылке messenger.html?id=charId — сразу открыть переписку
+                    const params = new URLSearchParams(window.location.search);
+                    const openId = params.get('id');
+                    if (openId) openConversation(openId);
+                } catch (err) {
+                    console.error('Error loading chats:', err);
+                    listEl.innerHTML = '<p class="error-text">Failed to load your chats.</p>';
+                }
+            }
+
+            loadChats();
+        }
+    </script>
 </body>
 </html>
