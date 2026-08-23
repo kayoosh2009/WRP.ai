@@ -246,6 +246,10 @@
             card.addEventListener('click', () => {
                 window.location.href = `/model.html?id=${char.id}`;
             });
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', () => {
+                window.location.href = `/model.html?id=${char.id}`;
+            });
 
             const needsToggle = char.description.length > DESC_LIMIT;
             const shortDesc = needsToggle ? char.description.substring(0, DESC_LIMIT) + '...' : char.description;
@@ -306,11 +310,27 @@
                 : a.message_count - b.message_count);
 
             grid.innerHTML = '';
+            grid.appendChild(renderChatsCard());
+
             if (filtered.length === 0) {
-                grid.innerHTML = '<p class="loading-text">No characters found.</p>';
+                grid.insertAdjacentHTML('beforeend', '<p class="loading-text">No characters found.</p>');
                 return;
             }
             filtered.forEach(char => grid.appendChild(renderCharacterCard(char)));
+        }
+
+        function renderChatsCard() {
+            const card = document.createElement('a');
+            card.href = '/messenger.html';
+            card.className = 'character-card';
+            card.innerHTML = `
+                <div class="card-image" style="background-image: url('img/chat.png'); background-size: 80px; background-repeat: no-repeat; background-position: center;"></div>
+                <div class="card-info">
+                    <h3>My Chats</h3>
+                    <p class="card-desc"><span class="desc-short">All your conversations with characters</span></p>
+                </div>
+            `;
+            return card;
         }
 
         function setupFilterControls() {
