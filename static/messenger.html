@@ -124,6 +124,128 @@
             }
 
             loadChats();
+
+                    // --- Conversation (правая панель) ---
+        const emptyStateEl = document.getElementById('messengerEmptyState');
+        const conversationEl = document.getElementById('messengerConversation');
+        const convMessagesEl = document.getElementById('convMessages');
+        const convForm = document.getElementById('convForm');
+        const convInput = document.getElementById('convInput');
+        const convSendBtn = document.getElementById('convSendBtn');
+        const convAvatarEl = document.getElementById('convAvatar');
+        const convNameEl = document.getElementById('convCharName');
+        const convMetaEl = document.getElementById('convCharMeta');
+        const messengerBackBtn = document.getElementById('messengerBackBtn');
+        const messengerLayout = document.getElementById('messengerLayout');
+
+        let currentCharId = null;
+        const violenceLabels = { mild: 'Mild', medium: 'Medium', graphic: 'Graphic' };
+
+        function renderMessage(role, content) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `chat-message ${role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`;
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble';
+            bubble.textContent = content;
+            wrapper.appendChild(bubble);
+            convMessagesEl.appendChild(wrapper);
+        }
+
+        function scrollToBottom() {
+            convMessagesEl.scrollTop = convMessagesEl.scrollHeight;
+        }
+
+        window.openConversation = async function (charId) {
+            currentCharId = charId;
+            emptyStateEl.hidden = true;
+            conversationEl.hidden = false;
+            messengerLayout.classList.add('conversation-open'); // для мобильного вида
+
+            // Подсветка активного элемента в списке
+            document.querySelectorAll('.messenger-list-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.charId === charId);
+            });
+
+            convNameEl.textContent = 'Loading...';
+            convMessagesEl.innerHTML = '<p class="loading-text">Loading conversation...</p>';
+
+            try {
+                const charRes = await fetch(`/api/characters/${charId}`);
+                if (!charRes.ok) throw new Error('Character not found');
+                const character = await charRes.json();
+
+                convNameEl.textContent = character.name;
+                convMetaEl.textContent = `${character.language.toUpperCase()} · ${violenceLabels[character.violence_level] || character.violence_level}`;
+                if (character.avatar_url) {
+                    convAvatarEl.style.backgroundImage = `url('${character.avatar_url}')`;
+                } else {
+                    convAvatarEl.textContent = character.name.charAt(0).toUpperCase();
+                }
+
+                const historyRes = await authFetch(`/api/chat/${charId}`);
+                convMessagesEl.innerHTML = '';
+
+                if (historyRes.ok) {
+                    const history = await historyRes.json();
+                    if (history.length === 0) {
+                        convMessagesEl.innerHTML = '<p class="loading-text">Say hello to start the conversation.</p>';
+                    } else {
+                        history.forEach(msg => renderMessage(msg.role, msg.content));
+                        scrollToBottom();
+                    }
+                } else {
+                    convMessagesEl.innerHTML = '<p class="error-text">Failed to load conversation history.</p>';
+                }
+            } catch (err) {
+                console.error('Error loading conversation:', err);
+                convNameEl.textContent = 'Character not found';
+                convMessagesEl.innerHTML = '<p class="error-text">Failed to load this character.</p>';
+            }
+        }
+
+        async function sendMessage() {
+            const text = convInput.value.trim();
+            if (!text || !currentCharId) return;
+
+            const placeholder = convMessagesEl.querySelector('.loading-text');
+            if (placeholder) placeholder.remove();
+
+            renderMessage('user', text);
+            scrollToBottom();
+            convInput.value = '';
+            convInput.disabled = true;
+            convSendBtn.disabled = true;
+
+            try {
+                const response = await authFetch(`/api/chat/${currentCharId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text }),
+                });
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                const data = await response.json();
+                renderMessage('assistant', data.reply);
+                scrollToBottom();
+            } catch (err) {
+                console.error('Error sending message:', err);
+                renderMessage('assistant', '⚠️ Failed to get a response. Please try again.');
+                scrollToBottom();
+            } finally {
+                convInput.disabled = false;
+                convSendBtn.disabled = false;
+                convInput.focus();
+            }
+        }
+
+        convForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        messengerBackBtn.addEventListener('click', () => {
+            messengerLayout.classList.remove('conversation-open');
+        });
         }
     </script>
 </body>
