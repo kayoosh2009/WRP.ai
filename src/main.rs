@@ -54,6 +54,7 @@ async fn main() {
         .route("/api/profile/characters", get(get_profile_characters_handler))
         .route("/api/servers-stats", get(get_servers_stats_handler))
         .route("/api/profile/chats", get(get_profile_chats_handler))
+        .route("/api/characters/:char_id/rating", get(get_rating_handler).post(set_rating_handler))
         .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth::require_auth));
 
     // Роуты только для админа
