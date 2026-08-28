@@ -23,7 +23,136 @@
     </main>
 
     <script type="module">
-        // JS будет следующим шагом
+        import { requireAuthOrRedirect, authFetch } from '/js/auth.js';
+
+        const user = requireAuthOrRedirect();
+
+        if (user) {
+            const params = new URLSearchParams(window.location.search);
+            const charId = params.get('id');
+            const pageEl = document.getElementById('modelPage');
+
+            if (!charId) {
+                window.location.href = '/';
+            }
+
+            const violenceLabels = { mild: 'Mild', medium: 'Medium', graphic: 'Graphic' };
+            let myRating = 0; // подтянем отдельно, когда появится эндпоинт рейтинга
+
+            function renderStars(avg, interactive, onRate) {
+                const wrap = document.createElement('div');
+                wrap.className = 'rating-stars';
+
+                for (let i = 1; i <= 5; i++) {
+                    const star = document.createElement('img');
+                    const filled = interactive ? i <= myRating : i <= Math.round(avg);
+                    star.src = filled ? 'icons/star-on.png' : 'icons/star-off.png';
+                    star.className = 'rating-star';
+                    star.alt = `${i} star`;
+
+                    if (interactive) {
+                        star.style.cursor = 'pointer';
+                        star.addEventListener('click', () => onRate(i));
+                    }
+                    wrap.appendChild(star);
+                }
+                return wrap;
+            }
+
+            async function submitRating(charId, value) {
+                try {
+                    const res = await authFetch(`/api/characters/${charId}/rating`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rating: value }),
+                    });
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    const data = await res.json();
+                    myRating = data.my_rating;
+                    renderPage(); // перерисовываем с новым значением
+                } catch (err) {
+                    console.error('Error submitting rating:', err);
+                    alert('Failed to submit rating. Please try again.');
+                }
+            }
+
+            let character = null;
+
+            function renderPage() {
+                pageEl.innerHTML = '';
+
+                const header = document.createElement('div');
+                header.className = 'model-header';
+                header.innerHTML = `
+                    <div class="model-avatar" style="background-image: url('${character.avatar_url || ''}')"></div>
+                    <div class="model-header-info">
+                        <h1>${character.name}</h1>
+                        <div class="model-badges">
+                            <span class="badge">${character.language.toUpperCase()}</span>
+                            <span class="badge">${violenceLabels[character.violence_level] || character.violence_level}</span>
+                        </div>
+                    </div>
+                `;
+                pageEl.appendChild(header);
+
+                const ratingBlock = document.createElement('div');
+                ratingBlock.className = 'model-rating-block';
+                const avgText = document.createElement('span');
+                avgText.className = 'rating-avg-text';
+                avgText.textContent = `${character.rating_avg.toFixed(1)} (${character.rating_count} ratings)`;
+                ratingBlock.appendChild(renderStars(character.rating_avg, true, (val) => submitRating(character.id, val)));
+                ratingBlock.appendChild(avgText);
+                pageEl.appendChild(ratingBlock);
+
+                const stats = document.createElement('div');
+                stats.className = 'model-stats';
+                stats.innerHTML = `
+                    <div class="model-stat"><span class="model-stat-label">Created by</span><span class="model-stat-value">${character.created_by_name}</span></div>
+                    <div class="model-stat"><span class="model-stat-label">Messages</span><span class="model-stat-value">${character.message_count}</span></div>
+                `;
+                pageEl.appendChild(stats);
+
+                const desc = document.createElement('p');
+                desc.className = 'model-description';
+                desc.textContent = character.description;
+                pageEl.appendChild(desc);
+
+                const chatBtn = document.createElement('button');
+                chatBtn.className = 'chat-btn model-chat-btn';
+                chatBtn.textContent = 'Start Chat';
+                chatBtn.addEventListener('click', () => {
+                    window.location.href = `/chat.html?id=${character.id}`;
+                });
+                pageEl.appendChild(chatBtn);
+            }
+
+            async function loadMyRating(charId) {
+                try {
+                    const res = await authFetch(`/api/characters/${charId}/rating`);
+                    if (!res.ok) return; // эндпоинта ещё нет / нет прав — тихо пропускаем
+                    const data = await res.json();
+                    myRating = data.my_rating;
+                } catch (err) {
+                    console.warn('Rating endpoint not available yet:', err);
+                }
+            }
+
+            async function loadCharacter() {
+                try {
+                    const res = await fetch(`/api/characters/${charId}`);
+                    if (!res.ok) throw new Error('Character not found');
+                    character = await res.json();
+
+                    await loadMyRating(charId);
+                    renderPage();
+                } catch (err) {
+                    console.error('Error loading character:', err);
+                    pageEl.innerHTML = '<p class="error-text">Failed to load this character.</p>';
+                }
+            }
+
+            loadCharacter();
+        }
     </script>
 </body>
 </html>
