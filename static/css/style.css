@@ -1740,17 +1740,43 @@ body {
     }
 }
 /* --- Model (character profile) page --- */
+.model-bg-blur {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 420px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(40px) brightness(0.5);
+    transform: scale(1.15); /* прячем размытые края под blur */
+    z-index: -1;
+}
+
+.model-bg-blur::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.2), var(--bg-dark) 95%);
+}
+
 .model-page {
+    position: relative;
     max-width: 720px;
     margin: 0 auto;
-    padding: 32px 20px 60px;
+    padding: 60px 20px 60px;
 }
 
 .model-header {
     display: flex;
     align-items: center;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.model-avatar {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border: 3px solid var(--bg-dark);
 }
 
 .model-avatar {

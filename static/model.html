@@ -83,6 +83,10 @@
             function renderPage() {
                 pageEl.innerHTML = '';
 
+                if (character.avatar_url) {
+                    document.getElementById('modelBgBlur').style.backgroundImage = `url('${character.avatar_url}')`;
+                }
+
                 const header = document.createElement('div');
                 header.className = 'model-header';
                 header.innerHTML = `
