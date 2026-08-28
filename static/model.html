@@ -48,7 +48,7 @@
                 for (let i = 1; i <= 5; i++) {
                     const star = document.createElement('img');
                     const filled = interactive ? i <= myRating : i <= Math.round(avg);
-                    star.src = filled ? 'icons/star-on.png' : 'icons/star-off.png';
+                    star.src = filled ? 'img/star-on.png' : 'img/star-off.png';
                     star.className = 'rating-star';
                     star.alt = `${i} star`;
 
