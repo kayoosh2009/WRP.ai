@@ -193,9 +193,14 @@ async fn create_character_handler(
     }
     let _ = ALLOWED_LANGUAGES; // зарезервировано, если позже захотим строгую валидацию ru/en
 
+    let created_by_name = user.name.clone()
+        .or_else(|| user.email.clone())
+        .unwrap_or_else(|| "Anonymous".to_string());
+
     match state.db.create_character(
         &user.id_token,
         &user.uid,
+        &created_by_name,
         &payload.name,
         &payload.avatar_url,
         &payload.description,
