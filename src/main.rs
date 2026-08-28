@@ -550,6 +550,55 @@ async fn get_profile_chats_handler(
     }
 }
 
+// GET /api/characters/:char_id/rating — оценка текущего пользователя для этого персонажа
+async fn get_rating_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+) -> Result<Json<model::RatingInfo>, StatusCode> {
+    let my_rating = match state.db.get_user_rating(&user.id_token, &char_id, &user.uid).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении оценки пользователя: {}", e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let character = match state.db.get_character(&char_id).await {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении персонажа для рейтинга: {}", e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    Ok(Json(model::RatingInfo {
+        rating_avg: character.rating_avg,
+        rating_count: character.rating_count,
+        my_rating,
+    }))
+}
+
+// POST /api/characters/:char_id/rating — поставить/изменить оценку
+async fn set_rating_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Path(char_id): Path<String>,
+    Json(payload): Json<model::SetRatingRequest>,
+) -> Result<Json<model::RatingInfo>, StatusCode> {
+    if payload.rating < 1 || payload.rating > 5 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    match state.db.set_rating(&user.id_token, &char_id, &user.uid, payload.rating).await {
+        Ok(info) => Ok(Json(info)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при сохранении оценки: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
 // POST /api/admin/sponsors — добавить спонсора (только для админа)
 async fn add_sponsor_handler(
     State(state): State<AppState>,
