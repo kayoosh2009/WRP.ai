@@ -244,6 +244,135 @@ impl FirestoreDb {
         Ok(character)
     }
 
+    /// Получить оценку конкретного пользователя для персонажа (0, если ещё не оценивал)
+    pub async fn get_user_rating(
+        &self,
+        id_token: &str,
+        char_id: &str,
+        uid: &str,
+    ) -> Result<u8, Box<dyn std::error::Error>> {
+        let url = format!(
+            "{}/characters/{}/ratings/{}?key={}",
+            self.base_url(),
+            char_id,
+            uid,
+            self.api_key
+        );
+
+        let response = self.client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Ok(0); // документа ещё нет — значит юзер не оценивал
+        }
+
+        let doc: FirestoreDocument = response.json().await?;
+        let rating = get_integer_field(&doc.fields, "rating").unwrap_or(0);
+        Ok(rating as u8)
+    }
+
+    /// Поставить/изменить оценку персонажа и пересчитать среднее
+    pub async fn set_rating(
+        &self,
+        id_token: &str,
+        char_id: &str,
+        uid: &str,
+        rating: u8,
+    ) -> Result<crate::model::RatingInfo, Box<dyn std::error::Error>> {
+        // 1. Сохраняем/перезаписываем оценку конкретного пользователя
+        let rating_url = format!(
+            "{}/characters/{}/ratings/{}?key={}",
+            self.base_url(),
+            char_id,
+            uid,
+            self.api_key
+        );
+
+        let rating_body = serde_json::json!({
+            "fields": {
+                "rating": { "integerValue": rating.to_string() }
+            }
+        });
+
+        let put_response = self.client
+            .patch(&rating_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&rating_body)
+            .send()
+            .await?;
+
+        if !put_response.status().is_success() {
+            let err_text = put_response.text().await?;
+            return Err(format!("Firestore PATCH RATING error: {}", err_text).into());
+        }
+
+        // 2. Читаем все оценки этого персонажа, чтобы пересчитать среднее
+        let list_url = format!(
+            "{}/characters/{}/ratings?key={}",
+            self.base_url(),
+            char_id,
+            self.api_key
+        );
+
+        let list_response = self.client
+            .get(&list_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await?;
+
+        if !list_response.status().is_success() {
+            let err_text = list_response.text().await?;
+            return Err(format!("Firestore LIST RATINGS error: {}", err_text).into());
+        }
+
+        let list: FirestoreListResponse = list_response.json().await?;
+        let mut sum: i64 = 0;
+        let mut count: i64 = 0;
+        for doc in &list.documents {
+            if let Ok(r) = get_integer_field(&doc.fields, "rating") {
+                sum += r;
+                count += 1;
+            }
+        }
+        let avg = if count > 0 { sum as f64 / count as f64 } else { 0.0 };
+
+        // 3. Обновляем денормализованные rating_avg / rating_count в самом персонаже
+        let char_url = format!(
+            "{}/characters/{}?key={}&updateMask.fieldPaths=rating_avg&updateMask.fieldPaths=rating_count",
+            self.base_url(),
+            char_id,
+            self.api_key
+        );
+
+        let char_body = serde_json::json!({
+            "fields": {
+                "rating_avg": { "doubleValue": avg },
+                "rating_count": { "integerValue": count.to_string() }
+            }
+        });
+
+        let char_response = self.client
+            .patch(&char_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&char_body)
+            .send()
+            .await?;
+
+        if !char_response.status().is_success() {
+            let err_text = char_response.text().await?;
+            return Err(format!("Firestore PATCH RATING_AVG error: {}", err_text).into());
+        }
+
+        Ok(crate::model::RatingInfo {
+            rating_avg: avg,
+            rating_count: count as u64,
+            my_rating: rating,
+        })
+    }
+
     /// Сохранить одно сообщение в историю чата пользователя с персонажем
     pub async fn save_message(
         &self,
