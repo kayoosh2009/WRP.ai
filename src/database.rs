@@ -195,6 +195,7 @@ impl FirestoreDb {
         &self,
         id_token: &str,
         uid: &str,
+        created_by_name: &str,
         name: &str,
         avatar_url: &str,
         description: &str,
@@ -213,7 +214,10 @@ impl FirestoreDb {
                 "message_count": { "integerValue": "0" },
                 "language": { "stringValue": language },
                 "violence_level": { "stringValue": violence_level },
-                "created_by": { "stringValue": uid }
+                "created_by": { "stringValue": uid },
+                "created_by_name": { "stringValue": created_by_name },
+                "rating_avg": { "doubleValue": 0.0 },
+                "rating_count": { "integerValue": "0" }
             }
         });
 
