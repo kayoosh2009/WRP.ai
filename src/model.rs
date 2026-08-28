@@ -21,6 +21,26 @@ pub struct RpCharacter {
     pub violence_level: String, // "mild" | "medium" | "graphic"
     #[serde(default)]
     pub created_by: String, // uid пользователя, создавшего персонажа
+    #[serde(default)]
+    pub created_by_name: String, // отображаемое имя автора (денормализовано на момент создания)
+    #[serde(default)]
+    pub rating_avg: f64,   // средняя оценка 0.0–5.0
+    #[serde(default)]
+    pub rating_count: u64, // сколько человек оценили
+}
+
+/// Тело запроса POST /api/characters/:id/rating
+#[derive(Deserialize, Debug)]
+pub struct SetRatingRequest {
+    pub rating: u8, // 1..=5
+}
+
+/// Ответ на запрос рейтинга: обновлённое среднее + оценка текущего пользователя
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RatingInfo {
+    pub rating_avg: f64,
+    pub rating_count: u64,
+    pub my_rating: u8, // 0, если пользователь ещё не оценивал
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
