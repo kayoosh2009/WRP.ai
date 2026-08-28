@@ -40,7 +40,17 @@ fn get_string_field(fields: &HashMap<String, FirestoreValue>, key: &str) -> Resu
     }
 }
 
-fn get_integer_field(fields: &HashMap<String, FirestoreValue>, key: &str) -> Result<i64, String> {
+fn get_double_field(fields: &HashMap<String, FirestoreValue>, key: &str) -> Result<f64, String> {
+    let value = fields.get(key).ok_or_else(|| format!("Missing field: {}", key))?;
+    if let Some(d) = value.double_value {
+        return Ok(d);
+    }
+    // Firestore иногда присылает целые значения (0, 5) как integerValue, а не doubleValue
+    if let Some(i) = &value.integer_value {
+        return i.parse::<f64>().map_err(|e| e.to_string());
+    }
+    Err(format!("Field {} is not a number", key))
+}
     match fields.get(key) {
         Some(FirestoreValue::Integer { integer_value }) => {
             integer_value.parse::<i64>().map_err(|e| e.to_string())
