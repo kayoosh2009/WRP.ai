@@ -88,6 +88,9 @@ impl FirestoreDb {
             language: get_string_field(&doc.fields, "language").unwrap_or_else(|_| "en".to_string()),
             violence_level: get_string_field(&doc.fields, "violence_level").unwrap_or_else(|_| "mild".to_string()),
             created_by: get_string_field(&doc.fields, "created_by").unwrap_or_default(),
+            created_by_name: get_string_field(&doc.fields, "created_by_name").unwrap_or_else(|_| "Anonymous".to_string()),
+            rating_avg: get_double_field(&doc.fields, "rating_avg").unwrap_or(0.0),
+            rating_count: get_integer_field(&doc.fields, "rating_count").unwrap_or(0) as u64,
         })
     }
 
