@@ -284,6 +284,47 @@
             convMessagesEl.scrollTop = convMessagesEl.scrollHeight;
         }
 
+        function typeOutMessage(bubble, fullHtmlText, plainLength) {
+            return new Promise(resolve => {
+                if (!settings.typingEffect) {
+                    bubble.innerHTML = fullHtmlText;
+                    resolve();
+                    return;
+                }
+                let shown = 0;
+                const totalMs = Math.min(1800, Math.max(300, plainLength * 12));
+                const stepMs = Math.max(8, totalMs / plainLength);
+
+                const raw = bubble.dataset.raw || '';
+                const interval = setInterval(() => {
+                    shown++;
+                    bubble.innerHTML = renderLiteMarkdown(raw.slice(0, shown)) + '<span class="typing-cursor">▍</span>';
+                    scrollToBottom();
+                    if (shown >= raw.length) {
+                        clearInterval(interval);
+                        bubble.innerHTML = renderLiteMarkdown(raw);
+                        resolve();
+                    }
+                }, stepMs);
+            });
+        }
+
+        function setLoadingReply(show) {
+            let el = document.getElementById('typingIndicator');
+            if (show) {
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'typingIndicator';
+                    el.className = 'chat-message chat-message-assistant';
+                    el.innerHTML = '<div class="chat-bubble chat-typing">...</div>';
+                    convMessagesEl.appendChild(el);
+                    scrollToBottom();
+                }
+            } else if (el) {
+                el.remove();
+            }
+        }
+
         window.openConversation = async function (charId) {
             currentCharId = charId;
             emptyStateEl.hidden = true;
