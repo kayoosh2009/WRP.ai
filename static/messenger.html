@@ -383,22 +383,30 @@
             renderMessage('user', text);
             scrollToBottom();
             convInput.value = '';
+            autoResize();
             convInput.disabled = true;
             convSendBtn.disabled = true;
+            setLoadingReply(true);
 
             try {
                 const response = await authFetch(`/api/chat/${currentCharId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text }),
+                    body: JSON.stringify({ message: text, response_length: settings.responseLength }),
                 });
                 if (!response.ok) throw new Error(`Server responded with ${response.status}`);
 
                 const data = await response.json();
-                renderMessage('assistant', data.reply);
+                setLoadingReply(false);
+
+                const bubble = renderMessage('assistant', '');
+                bubble.dataset.raw = data.reply;
+                bubble.innerHTML = '';
+                await typeOutMessage(bubble, renderLiteMarkdown(data.reply), data.reply.length);
                 scrollToBottom();
             } catch (err) {
                 console.error('Error sending message:', err);
+                setLoadingReply(false);
                 renderMessage('assistant', '⚠️ Failed to get a response. Please try again.');
                 scrollToBottom();
             } finally {
