@@ -274,9 +274,10 @@
             wrapper.className = `chat-message ${role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`;
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble';
-            bubble.textContent = content;
+            bubble.innerHTML = renderLiteMarkdown(content);
             wrapper.appendChild(bubble);
             convMessagesEl.appendChild(wrapper);
+            return bubble;
         }
 
         function scrollToBottom() {
