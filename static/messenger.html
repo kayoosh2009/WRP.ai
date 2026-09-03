@@ -421,6 +421,21 @@
             sendMessage();
         });
 
+        function autoResize() {
+            convInput.style.height = 'auto';
+            convInput.style.height = Math.min(convInput.scrollHeight, 140) + 'px';
+        }
+        convInput.addEventListener('input', autoResize);
+
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+        convInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
         messengerBackBtn.addEventListener('click', () => {
             messengerLayout.classList.remove('conversation-open');
         });
