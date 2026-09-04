@@ -485,5 +485,48 @@
 
         loadNotifications();
     </script>
+
+    <script type="module">
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.carousel-dots .dot');
+        const track = document.getElementById('bannerTrack');
+
+        function showSlide(index) {
+            if (index < 0) currentSlide = slides.length - 1;
+            else if (index >= slides.length) currentSlide = 0;
+            else currentSlide = index;
+
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === currentSlide);
+            });
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentSlide);
+            });
+        }
+
+        document.getElementById('bannerPrevBtn').addEventListener('click', () => showSlide(currentSlide - 1));
+        document.getElementById('bannerNextBtn').addEventListener('click', () => showSlide(currentSlide + 1));
+
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => showSlide(index));
+        });
+
+        // Свайпы для мобильных устройств
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        track.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        track.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) showSlide(currentSlide + 1);
+            if (touchEndX - touchStartX > 50) showSlide(currentSlide - 1);
+        }, { passive: true });
+    </script>
 </body>
 </html>
