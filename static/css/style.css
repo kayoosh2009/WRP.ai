@@ -1875,3 +1875,113 @@ body {
     padding: 14px;
     font-size: 1rem;
 }
+
+/* --- Banner Carousel --- */
+.banner-carousel {
+    position: relative;
+    width: 100%;
+    margin-bottom: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.carousel-track-container {
+    overflow: hidden;
+    width: 100%;
+    border-radius: 12px;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.4s ease-in-out;
+    width: 100%;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    box-sizing: border-box;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    object-fit: cover;
+    display: block;
+}
+
+/* Кнопки перелистывания */
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(42, 37, 41, 0.7);
+    color: var(--text-light);
+    border: none;
+    font-size: 1.2rem;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 5;
+    transition: background 0.2s, transform 0.2s;
+    user-select: none;
+}
+
+.carousel-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+.prev-btn {
+    left: 12px;
+}
+
+.next-btn {
+    right: 12px;
+}
+
+/* Индикаторы (точки) */
+.carousel-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+}
+
+.carousel-dots .dot {
+    width: 8px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.carousel-dots .dot.active {
+    background-color: var(--text-light);
+    transform: scale(1.2);
+}
+
+/* Мобильная адаптация баннера */
+@media (max-width: 768px) {
+    .carousel-slide img {
+        max-height: 180px;
+    }
+
+    .carousel-btn {
+        padding: 6px 10px;
+        font-size: 1rem;
+    }
+
+    .prev-btn {
+        left: 6px;
+    }
+
+    .next-btn {
+        right: 6px;
+    }
+}
