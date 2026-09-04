@@ -128,8 +128,28 @@
                 </a>
             </aside>
 
-        <!-- Основной контент (Список моделей) -->
+<!-- Основной контент (Список моделей) -->
         <main class="main-content">
+            <!-- Баннер карусель -->
+            <div class="banner-carousel">
+                <button class="carousel-btn prev-btn" id="bannerPrevBtn" aria-label="Previous banner">&#10094;</button>
+                <div class="carousel-track-container">
+                    <div class="carousel-track" id="bannerTrack">
+                        <div class="carousel-slide active">
+                            <img src="img/banner1.png" alt="Banner 1">
+                        </div>
+                        <div class="carousel-slide">
+                            <img src="img/banner2.png" alt="Banner 2">
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-btn next-btn" id="bannerNextBtn" aria-label="Next banner">&#10095;</button>
+                <div class="carousel-dots" id="bannerDots">
+                    <span class="dot active" data-index="0"></span>
+                    <span class="dot" data-index="1"></span>
+                </div>
+            </div>
+
             <h2>Available Characters</h2>
             <div id="character-grid" class="character-grid">
                 <!-- Сюда JavaScript добавит карточки персонажей -->
