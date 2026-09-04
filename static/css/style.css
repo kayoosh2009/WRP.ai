@@ -1587,6 +1587,9 @@ body {
 }
 
 .messenger-list-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     padding: 20px 20px 12px;
     flex-shrink: 0;
 }
@@ -1718,7 +1721,7 @@ body {
     .messenger-conversation-pane {
         display: none;
         position: fixed;
-        top: 64px; /* высота шапки .chat-header */
+        top: 0;
         left: 0;
         right: 0;
         bottom: 0;
