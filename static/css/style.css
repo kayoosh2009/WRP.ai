@@ -756,14 +756,15 @@ body {
 }
 
 .chat-message-user .chat-bubble {
-    background-color: var(--text-light);
-    color: var(--bg-dark);
+    background-color: var(--hover-bg);
+    color: var(--text-light);
     border-bottom-right-radius: 4px;
 }
 
 .chat-message-assistant .chat-bubble {
     background-color: var(--card-bg);
     color: var(--text-light);
+    border: 1px solid var(--hover-bg);
     border-bottom-left-radius: 4px;
 }
 
