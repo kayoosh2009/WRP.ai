@@ -1925,8 +1925,17 @@ body {
     cursor: pointer;
     border-radius: 50%;
     z-index: 5;
-    transition: background 0.2s, transform 0.2s;
+    opacity: 0;
+    transition: background 0.2s, transform 0.2s, opacity 0.2s;
     user-select: none;
+    pointer-events: none;
+}
+
+.banner-carousel:hover .carousel-btn,
+.banner-carousel:focus-within .carousel-btn,
+.carousel-btn.touched {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .carousel-btn:hover {
