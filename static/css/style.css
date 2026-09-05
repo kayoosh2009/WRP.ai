@@ -1880,7 +1880,8 @@ body {
 .banner-carousel {
     position: relative;
     width: 100%;
-    margin-bottom: 24px;
+    max-width: 900px;
+    margin: 0 auto 24px;
     border-radius: 12px;
     overflow: hidden;
     background-color: var(--card-bg);
