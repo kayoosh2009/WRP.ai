@@ -537,6 +537,19 @@
 
         startAutoSlide();
 
+        // На тач-устройствах нет ховера — показываем стрелки по тапу на баннер
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+        if (isTouchDevice) {
+            const prevBtn = document.getElementById('bannerPrevBtn');
+            const nextBtn = document.getElementById('bannerNextBtn');
+
+            bannerCarousel.addEventListener('click', (e) => {
+                const alreadyShown = prevBtn.classList.contains('touched');
+                prevBtn.classList.toggle('touched', !alreadyShown);
+                nextBtn.classList.toggle('touched', !alreadyShown);
+            });
+        }
+
         // Свайпы для мобильных устройств
         let touchStartX = 0;
         let touchEndX = 0;
