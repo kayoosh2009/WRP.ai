@@ -507,12 +507,35 @@
             });
         }
 
-        document.getElementById('bannerPrevBtn').addEventListener('click', () => showSlide(currentSlide - 1));
-        document.getElementById('bannerNextBtn').addEventListener('click', () => showSlide(currentSlide + 1));
+        const bannerCarousel = document.querySelector('.banner-carousel');
+        let autoSlideInterval = null;
+
+        function startAutoSlide() {
+            autoSlideInterval = setInterval(() => showSlide(currentSlide + 1), 15000);
+        }
+
+        function resetAutoSlide() {
+            clearInterval(autoSlideInterval);
+            startAutoSlide();
+        }
+
+        document.getElementById('bannerPrevBtn').addEventListener('click', () => {
+            showSlide(currentSlide - 1);
+            resetAutoSlide();
+        });
+        document.getElementById('bannerNextBtn').addEventListener('click', () => {
+            showSlide(currentSlide + 1);
+            resetAutoSlide();
+        });
 
         dots.forEach((dot, index) => {
-            dot.addEventListener('click', () => showSlide(index));
+            dot.addEventListener('click', () => {
+                showSlide(index);
+                resetAutoSlide();
+            });
         });
+
+        startAutoSlide();
 
         // Свайпы для мобильных устройств
         let touchStartX = 0;
