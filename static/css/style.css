@@ -1170,6 +1170,13 @@ body {
     border-radius: 12px;
     padding: 20px;
     text-align: center;
+    border: 1px solid var(--hover-bg);
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--text-light);
 }
 
 .stat-value {
