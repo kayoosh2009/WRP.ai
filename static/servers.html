@@ -77,7 +77,10 @@
             document.getElementById('statTotalAllTime').textContent = formatNumber(totalAllTime);
             document.getElementById('statTopServer').textContent = top.alias || '—';
 
-            list.innerHTML = stats.map((s, i) => `
+            list.innerHTML = stats.map((s, i) => {
+                const { goal, progressPercent } = getGoalProgress(s.total_all_time || 0);
+
+                return `
                 <div class="admin-char-row">
                     <div class="admin-char-avatar" style="display:flex; align-items:center; justify-content:center; font-weight:bold;">
                         ${(s.alias || '?').charAt(0).toUpperCase()}
@@ -89,9 +92,23 @@
                         <div class="admin-char-meta">
                             In this month: ${formatNumber(s.current_month)} · Total: ${formatNumber(s.total_all_time)}
                         </div>
+                        <div class="server-goal-bar">
+                            <div class="server-goal-bar-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="server-goal-label">Goal: ${formatNumber(goal)} tokens</div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+        }
+
+        // Цель стартует с 100 000 и умножается на 10 каждый раз, когда её достигают
+        function getGoalProgress(total) {
+            let goal = 100000;
+            while (total >= goal) {
+                goal *= 10;
+            }
+            const progressPercent = Math.min(100, (total / goal) * 100);
+            return { goal, progressPercent };
         }
 
         function escapeHtml(str) {
