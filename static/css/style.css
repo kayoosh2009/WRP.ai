@@ -1146,6 +1146,18 @@ body {
     padding: 100px 20px 60px;
 }
 
+.admin-page h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.page-title-icon {
+    width: 28px;
+    height: 28px;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
