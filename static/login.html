@@ -4,54 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WRP.ai — Login</title>
-    <link rel="icon" href="img/favicon.png" type="image/png">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        .back-icon {
-            height: 24px;
-            width: auto;
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="login-page">
-
-    <div class="login-card">
-        <div class="login-logo">WRP.ai</div>
-        <p class="login-subtitle">Log in to chat with characters</p>
-
-        <button id="googleSignInBtn" class="google-btn">
-            <img src="img/google.png" alt="Google" class="google-icon">
-            <span>Log in with Google</span>
-        </button>
-
-        <p id="loginError" class="login-error" hidden></p>
+<body>
+    <div class="login-page">
+        <div class="login-container">
+            <div class="login-form-side">
+                <div class="login-card">
+                    <div class="login-logo">WRP.ai</div>
+                    <div class="login-subtitle">Log in to chat with characters</div>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <input type="email" id="emailInput" placeholder="Email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="passwordInput" placeholder="Password" required>
+                        </div>
+                        
+                        <div class="login-links">
+                            <button type="button" class="link-btn" id="forgotPasswordBtn">Forgot password?</button>
+                            <button type="button" class="link-btn" id="signUpBtn">Create account</button>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn" id="loginBtn">Log in</button>
+                    </form>
+                    
+                    <div class="divider">
+                        <span>or</span>
+                    </div>
+                    
+                    <button class="google-btn" id="googleBtn">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjlDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTJ2LTIuMmMtMS4yLjgtMi43IDEuMi00LjIgMS4yLTMuNCAwLTYuMi0yLjItNy4yLTUuMkgxLjR2Mi4zQTMuNCAzLjQgMCAwIDAgOSAxOHoiIGZpbGw9IzM0QTg1MyIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTQuNiAxMy43QzQuNCAxMy4xIDQuMyAxMi40IDQuMyAxMS43cy4xLTEuNC4zLTJWNy40SDEuNEE4LjggOC44IDAgMCAwIDEgMTFjMCAxLjQuMyAyLjcuOCAzLjdsMi44LTIuM3oiIGZpbGw9IiNGQkJDMDUiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDMuN2MxLjMgMCAyLjUuNSAzLjQgMS4zTDkuNyA3LjdDNy4zIDYuNSA1LjQgNi41IDUuNCA2LjVjLS4yLjItLjMuNS0uMy44IDAgLjMuMS42LjNMMi42IDkuN0ExMC4yIDEwLjIgMCAwIDEgOSAzLjd6IiBmaWxsPSIjRUE0MzM0IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48L2c+PC9zdmc+" alt="Google" class="google-icon">
+                        Continue with Google
+                    </button>
+                    
+                    <div class="login-error" id="loginError"></div>
+                </div>
+            </div>
+            
+            <div class="login-banner-side">
+                <div class="login-banner"></div>
+            </div>
+        </div>
     </div>
-
+    
+    <script type="module" src="auth.js"></script>
     <script type="module">
-        import { signInWithGoogle, getCachedUser } from '/js/auth.js';
-
-        // Если уже залогинены — сразу на главную
-        if (getCachedUser()) {
-            window.location.href = '/';
-        }
-
-        const btn = document.getElementById('googleSignInBtn');
-        const errorEl = document.getElementById('loginError');
-
-        btn.addEventListener('click', async () => {
-            btn.disabled = true;
-            errorEl.hidden = true;
+        import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } from './auth.js';
+        
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const googleBtn = document.getElementById('googleBtn');
+        const loginError = document.getElementById('loginError');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+        const signUpBtn = document.getElementById('signUpBtn');
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            try {
+                await signInWithEmail(emailInput.value, passwordInput.value);
+                window.location.href = '/';
+            } catch (err) {
+                loginError.textContent = getErrorMessage(err.code);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log in';
+            }
+        });
+        
+        googleBtn.addEventListener('click', async () => {
+            loginError.textContent = '';
+            googleBtn.disabled = true;
+            
             try {
                 await signInWithGoogle();
                 window.location.href = '/';
-            } catch (e) {
-                console.error('Login error:', e);
-                errorEl.textContent = 'Failed to log in with Google. Please try again.';
-                errorEl.hidden = false;
-                btn.disabled = false;
+            } catch (err) {
+                loginError.textContent = getErrorMessage(err.code);
+            } finally {
+                googleBtn.disabled = false;
             }
         });
+        
+        forgotPasswordBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                loginError.textContent = 'Enter your email first';
+                return;
+            }
+            
+            try {
+                await resetPassword(email);
+                loginError.textContent = '';
+                loginError.style.color = '#4CAF50';
+                loginError.textContent = 'Password reset email sent!';
+            } catch (err) {
+                loginError.style.color = '#ff6b6b';
+                loginError.textContent = getErrorMessage(err.code);
+            }
+        });
+        
+        signUpBtn.addEventListener('click', async () => {
+            loginError.textContent = '';
+            signUpBtn.disabled = true;
+            
+            try {
+                await signUpWithEmail(emailInput.value, passwordInput.value);
+                window.location.href = '/';
+            } catch (err) {
+                loginError.textContent = getErrorMessage(err.code);
+            } finally {
+                signUpBtn.disabled = false;
+            }
+        });
+        
+        function getErrorMessage(code) {
+            const messages = {
+                'auth/invalid-email': 'Invalid email address',
+                'auth/user-not-found': 'User not found',
+                'auth/wrong-password': 'Wrong password',
+                'auth/email-already-in-use': 'Email already in use',
+                'auth/weak-password': 'Password should be at least 6 characters',
+                'auth/too-many-requests': 'Too many attempts. Try again later',
+            };
+            return messages[code] || 'Something went wrong';
+        }
     </script>
 </body>
 </html>
