@@ -79,6 +79,36 @@ export async function signInWithGoogle() {
     return profile;
 }
 
+function cacheFromFirebaseUser(user, idToken) {
+    const profile = {
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        picture: user.photoURL,
+    };
+    cacheUser(idToken, profile);
+    return profile;
+}
+
+export async function signInWithEmail(email, password) {
+    await initFirebase();
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await result.user.getIdToken();
+    return cacheFromFirebaseUser(result.user, idToken);
+}
+
+export async function registerWithEmail(email, password) {
+    await initFirebase();
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const idToken = await result.user.getIdToken();
+    return cacheFromFirebaseUser(result.user, idToken);
+}
+
+export async function resetPassword(email) {
+    await initFirebase();
+    await sendPasswordResetEmail(auth, email);
+}
+
 export async function signOutUser() {
     await initFirebase();
     try {
