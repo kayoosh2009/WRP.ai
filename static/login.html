@@ -120,6 +120,7 @@
             mode = mode === 'login' ? 'signup' : 'login';
             welcomeEl.textContent = mode === 'signup' ? 'Create your account' : 'Welcome to wrpAI';
             signUpLink.textContent = mode === 'signup' ? 'Log in instead' : 'Sign up';
+            submitBtn.textContent = mode === 'signup' ? 'Create account' : 'Log in';
             hideError();
         });
 
