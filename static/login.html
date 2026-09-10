@@ -50,27 +50,127 @@
     </div>
 
     <script type="module">
-        import { signInWithGoogle, getCachedUser } from '/js/auth.js';
+        import {
+            signInWithGoogle,
+            signInWithEmail,
+            registerWithEmail,
+            resetPassword,
+            getCachedUser,
+        } from '/js/auth.js';
 
         // Если уже залогинены — сразу на главную
         if (getCachedUser()) {
             window.location.href = '/';
         }
 
-        const btn = document.getElementById('googleSignInBtn');
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const signUpLink = document.getElementById('signUpLink');
+        const forgotLink = document.getElementById('forgotLink');
+        const googleBtn = document.getElementById('googleSignInBtn');
         const errorEl = document.getElementById('loginError');
+        const welcomeEl = document.querySelector('.login-welcome');
 
-        btn.addEventListener('click', async () => {
-            btn.disabled = true;
+        let mode = 'login'; // 'login' | 'signup'
+
+        function showError(text, isSuccess = false) {
+            errorEl.textContent = text;
+            errorEl.style.color = isSuccess ? '#8fd18f' : '';
+            errorEl.hidden = false;
+        }
+
+        function hideError() {
             errorEl.hidden = true;
+        }
+
+        function setBusy(busy) {
+            emailInput.disabled = busy;
+            passwordInput.disabled = busy;
+            googleBtn.disabled = busy;
+        }
+
+        function friendlyError(e) {
+            switch (e && e.code) {
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    return 'Incorrect email or password.';
+                case 'auth/email-already-in-use':
+                    return 'An account with this email already exists.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                case 'auth/too-many-requests':
+                    return 'Too many attempts. Please try again later.';
+                default:
+                    return mode === 'signup'
+                        ? 'Failed to create account. Please try again.'
+                        : 'Failed to log in. Please check your credentials.';
+            }
+        }
+
+        signUpLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            mode = mode === 'login' ? 'signup' : 'login';
+            welcomeEl.textContent = mode === 'signup' ? 'Create your account' : 'Welcome to wrpAI';
+            signUpLink.textContent = mode === 'signup' ? 'Log in instead' : 'Sign up';
+            hideError();
+        });
+
+        forgotLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            hideError();
+            const email = emailInput.value.trim();
+            if (!email) {
+                showError('Enter your email above first, then click "Forgot password?".');
+                return;
+            }
+            try {
+                await resetPassword(email);
+                showError('Password reset email sent. Check your inbox.', true);
+            } catch (err) {
+                showError(friendlyError(err));
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showError('Please fill in both fields.');
+                return;
+            }
+
+            setBusy(true);
+            try {
+                if (mode === 'signup') {
+                    await registerWithEmail(email, password);
+                } else {
+                    await signInWithEmail(email, password);
+                }
+                window.location.href = '/';
+            } catch (err) {
+                console.error('Auth error:', err);
+                showError(friendlyError(err));
+                setBusy(false);
+            }
+        });
+
+        googleBtn.addEventListener('click', async () => {
+            setBusy(true);
+            hideError();
             try {
                 await signInWithGoogle();
                 window.location.href = '/';
-            } catch (e) {
-                console.error('Login error:', e);
-                errorEl.textContent = 'Failed to log in with Google. Please try again.';
-                errorEl.hidden = false;
-                btn.disabled = false;
+            } catch (err) {
+                console.error('Login error:', err);
+                showError('Failed to log in with Google. Please try again.');
+                setBusy(false);
             }
         });
     </script>
