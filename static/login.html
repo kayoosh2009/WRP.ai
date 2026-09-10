@@ -6,26 +6,47 @@
     <title>WRP.ai — Login</title>
     <link rel="icon" href="img/favicon.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        .back-icon {
-            height: 24px;
-            width: auto;
-            display: block;
-        }
-    </style>
 </head>
 <body class="login-page">
 
-    <div class="login-card">
-        <div class="login-logo">WRP.ai</div>
-        <p class="login-subtitle">Log in to chat with characters</p>
+    <a href="/" class="login-back">
+        <img src="img/back.png" alt="Back" class="back-icon">
+    </a>
 
-        <button id="googleSignInBtn" class="google-btn">
-            <img src="img/google.png" alt="Google" class="google-icon">
-            <span>Log in with Google</span>
-        </button>
+    <div class="login-container">
+        <div class="login-left">
+            <h1 class="login-welcome">Welcome to wrpAI</h1>
 
-        <p id="loginError" class="login-error" hidden></p>
+            <form id="loginForm" novalidate>
+                <div class="login-input-group">
+                    <img src="img/email.png" alt="" class="login-input-icon">
+                    <input type="email" id="emailInput" placeholder="Email" autocomplete="email" required>
+                </div>
+
+                <div class="login-input-group">
+                    <img src="img/pass.png" alt="" class="login-input-icon">
+                    <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password" required>
+                </div>
+
+                <div class="login-links-row">
+                    <a href="#" class="login-link" id="signUpLink">Sign up</a>
+                    <a href="#" class="login-link" id="forgotLink">Forgot password?</a>
+                </div>
+            </form>
+
+            <div class="login-divider"><span>or</span></div>
+
+            <button id="googleSignInBtn" class="google-btn">
+                <img src="img/google.png" alt="Google" class="google-icon">
+                <span>Log in with Google</span>
+            </button>
+
+            <p id="loginError" class="login-error" hidden></p>
+        </div>
+
+        <div class="login-right">
+            <img src="img/login-banner.gif" alt="" class="login-banner-gif">
+        </div>
     </div>
 
     <script type="module">
