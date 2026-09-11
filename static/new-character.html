@@ -18,66 +18,133 @@
         </div>
     </header>
 
-    <div class="form-page">
-        <div class="form-card">
-            <h2>Create a new character</h2>
-            <p class="form-subtitle">Fill in the details below. Fields marked with * are required.</p>
+    <div class="create-page">
+        <div class="create-header">
+            <div>
+                <h2>Create a new character</h2>
+                <p class="form-subtitle">Fill in the details below. Fields marked with * are required.</p>
+            </div>
+            <button type="button" id="generateAiBtn" class="ai-generate-btn">
+                <img src="img/sparkle.png" alt="" class="btn-icon">
+                Generate with AI
+            </button>
+        </div>
 
-            <form id="newCharacterForm">
-                <div class="form-group">
-                    <label for="name">Name *</label>
-                    <input type="text" id="name" name="name" placeholder="e.g. Aria the Sorceress" required maxlength="80">
+        <div class="create-layout">
+            <div class="create-form-col">
+                <form id="newCharacterForm">
+                    <section class="form-section">
+                        <h3 class="form-section-title">Basics</h3>
+
+                        <div class="form-group">
+                            <label for="name">Name *</label>
+                            <input type="text" id="name" name="name" placeholder="e.g. Aria the Sorceress" required maxlength="80">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Avatar image</label>
+                            <div class="avatar-dropzone" id="avatarDropzone">
+                                <img id="avatarPreview" class="avatar-dropzone-preview" hidden>
+                                <div class="avatar-dropzone-empty" id="avatarDropzoneEmpty">
+                                    <img src="img/upload.png" alt="" class="avatar-dropzone-icon">
+                                    <span>Drag & drop or click to upload</span>
+                                </div>
+                                <input type="file" id="avatar_file" name="avatar_file" accept="image/png, image/jpeg, image/webp" hidden>
+                            </div>
+                            <p class="field-hint">PNG, JPG or WEBP, up to 500 KB. Optional.</p>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <h3 class="form-section-title">Style</h3>
+
+                        <div class="form-group">
+                            <label for="language">Language</label>
+                            <select id="language" name="language">
+                                <option value="ru">Russian</option>
+                                <option value="en" selected>English</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <input type="text" id="languageOther" class="language-other-input" placeholder="Enter language, e.g. Spanish" hidden maxlength="40">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="violence_level">Story intensity</label>
+                            <select id="violence_level" name="violence_level">
+                                <option value="mild" selected>Mild — family-friendly</option>
+                                <option value="medium">Medium — some conflict and peril</option>
+                                <option value="graphic">Graphic — dark, intense themes allowed</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <h3 class="form-section-title">Personality</h3>
+
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label for="description">Description *</label>
+                                <span class="char-counter" id="descCounter">0/300</span>
+                            </div>
+                            <textarea id="description" name="description" rows="3" placeholder="Short description shown on the character card" required maxlength="300"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label for="internal_prompt">Character prompt *</label>
+                                <div class="field-label-row-right">
+                                    <span class="char-counter" id="promptCounter">0/4000</span>
+                                    <button type="button" id="regenBtn" class="regen-btn" hidden>
+                                        <img src="img/refresh.png" alt="" class="btn-icon-small">
+                                        Regenerate
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="field-hint">
+                                This is the hidden system prompt that defines how the character behaves.
+                                Describe their personality, speaking style, background, and any rules for how they should respond.
+                            </p>
+                            <p class="field-example">
+                                Example: "You are Aria, a witty and confident sorceress from a floating city.
+                                You speak with dry humor, are fiercely loyal to your friends, and always
+                                answer in character. Never break the fourth wall or mention you are an AI."
+                            </p>
+                            <textarea id="internal_prompt" name="internal_prompt" rows="6" placeholder="You are [name], a..." required maxlength="4000"></textarea>
+                        </div>
+                    </section>
+
+                    <p id="formError" class="form-error" hidden></p>
+
+                    <button type="submit" id="submitBtn" class="submit-btn">Create character</button>
+                </form>
+            </div>
+
+            <aside class="create-preview-col">
+                <div class="preview-label">Live preview</div>
+                <div class="character-card preview-card">
+                    <div class="card-image" id="previewImage"></div>
+                    <div class="card-info">
+                        <h3 id="previewName">Your character's name</h3>
+                        <p id="previewDesc">A short description will appear here as you type.</p>
+                    </div>
                 </div>
+            </aside>
+        </div>
+    </div>
 
-                <div class="form-group">
-                    <label for="avatar_file">Avatar image</label>
-                    <input type="file" id="avatar_file" name="avatar_file" accept="image/png, image/jpeg, image/webp">
-                    <p class="field-hint">PNG, JPG or WEBP, up to 500 KB. Optional.</p>
-                    <img id="avatarPreview" class="avatar-preview" hidden>
-                </div>
-
-                <div class="form-group">
-                    <label for="language">Language</label>
-                    <select id="language" name="language">
-                        <option value="ru">Russian</option>
-                        <option value="en" selected>English</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <input type="text" id="languageOther" class="language-other-input" placeholder="Enter language, e.g. Spanish" hidden maxlength="40">
-                </div>
-
-                <div class="form-group">
-                    <label for="violence_level">Story intensity</label>
-                    <select id="violence_level" name="violence_level">
-                        <option value="mild" selected>Mild — family-friendly</option>
-                        <option value="medium">Medium — some conflict and peril</option>
-                        <option value="graphic">Graphic — dark, intense themes allowed</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Description *</label>
-                    <textarea id="description" name="description" rows="3" placeholder="Short description shown on the character card" required maxlength="300"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="internal_prompt">Character prompt *</label>
-                    <p class="field-hint">
-                        This is the hidden system prompt that defines how the character behaves.
-                        Describe their personality, speaking style, background, and any rules for how they should respond.
-                    </p>
-                    <p class="field-example">
-                        Example: "You are Aria, a witty and confident sorceress from a floating city.
-                        You speak with dry humor, are fiercely loyal to your friends, and always
-                        answer in character. Never break the fourth wall or mention you are an AI."
-                    </p>
-                    <textarea id="internal_prompt" name="internal_prompt" rows="6" placeholder="You are [name], a..." required maxlength="4000"></textarea>
-                </div>
-
-                <p id="formError" class="form-error" hidden></p>
-
-                <button type="submit" id="submitBtn" class="submit-btn">Create character</button>
-            </form>
+    <div class="modal-overlay" id="aiModalOverlay">
+        <div class="modal-card ai-modal-card">
+            <button type="button" id="aiModalClose" class="modal-close-btn">
+                <img src="img/close.png" alt="Close">
+            </button>
+            <div class="modal-logo">✨ Generate a character</div>
+            <p class="ai-modal-subtitle">Give a short idea, or leave it empty for a total surprise.</p>
+            <textarea id="aiHintInput" class="ai-hint-input" rows="3" placeholder="e.g. a grumpy dwarf blacksmith who secretly writes poetry" maxlength="500"></textarea>
+            <p id="aiModalError" class="form-error" hidden></p>
+            <div class="modal-actions">
+                <button type="button" id="aiGenerateSubmitBtn" class="modal-btn-primary">Generate</button>
+                <button type="button" id="aiModalCancelBtn" class="modal-btn-secondary">Cancel</button>
+            </div>
         </div>
     </div>
 
