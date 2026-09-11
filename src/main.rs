@@ -17,7 +17,7 @@ use tokio::net::TcpListener;
 use reqwest::Client;
 
 use crate::auth::AuthUser;
-use crate::generation::{Message, GenerationSettings};
+use crate::generation::{Message, GenerationSettings, GeneratedCharacter};
 
 // Состояние приложения, которое будет доступно всем роутам
 #[derive(Clone)]
