@@ -176,6 +176,38 @@ async fn get_character_handler(
 const ALLOWED_LANGUAGES: [&str; 2] = ["ru", "en"];
 const ALLOWED_VIOLENCE_LEVELS: [&str; 3] = ["mild", "medium", "graphic"];
 
+#[derive(Deserialize)]
+struct GenerateCharacterRequest {
+    #[serde(default)]
+    hint: String,
+}
+
+// POST /api/characters/generate — сгенерировать черновик персонажа через ИИ (не сохраняет его, только возвращает)
+async fn generate_character_handler(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthUser>,
+    Json(payload): Json<GenerateCharacterRequest>,
+) -> Result<Json<GeneratedCharacter>, StatusCode> {
+    if payload.hint.len() > 500 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let result = generation::generate_character_idea(&state.http_client, &state.token_manager, &payload.hint)
+        .await
+        .map_err(|e| {
+            eprintln!("❌ Ошибка генерации персонажа: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    for usage in &result.usage {
+        if let Err(e) = state.db.record_token_usage(&user.id_token, &usage.alias, usage.tokens).await {
+            eprintln!("⚠️ Не удалось записать статистику токенов ({}): {}", usage.alias, e);
+        }
+    }
+
+    Ok(Json(result.character))
+}
+
 async fn create_character_handler(
     State(state): State<AppState>,
     Extension(user): Extension<AuthUser>,
