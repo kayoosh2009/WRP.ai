@@ -231,6 +231,8 @@ fn parse_character_json(raw: &str) -> Option<GeneratedCharacter> {
     }
     serde_json::from_str::<GeneratedCharacter>(&raw[start..=end]).ok()
 }
+
+pub async fn generate_rp_response(
     client: &Client,
     token_manager: &TokenManager,
     user_input: &str,
