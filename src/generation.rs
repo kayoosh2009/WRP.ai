@@ -130,7 +130,107 @@ pub struct GenerationResult {
     pub usage: Vec<TokenUsage>,
 }
 
-pub async fn generate_rp_response(
+/// Структурированный черновик персонажа, который возвращает ИИ
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GeneratedCharacter {
+    pub name: String,
+    pub description: String,
+    pub internal_prompt: String,
+    pub language: String,       // "ru" | "en"
+    pub violence_level: String, // "mild" | "medium" | "graphic"
+}
+
+pub struct CharacterIdeaResult {
+    pub character: GeneratedCharacter,
+    pub usage: Vec<TokenUsage>,
+}
+
+const CHARACTER_IDEA_SYSTEM_PROMPT: &str = "\
+Ты — помощник для создания персонажей ролевого чата (RP-платформа).\n\
+Тебе присылают необязательную короткую затравку от пользователя (может быть пустой).\n\
+Придумай интересного, детально проработанного персонажа на основе затравки \
+(или полностью случайного, если затравка пустая).\n\
+\n\
+Верни СТРОГО валидный JSON без markdown-разметки, без ``` и без пояснений — \
+только сам JSON-объект со следующими полями:\n\
+{\n\
+  \"name\": \"имя персонажа, до 80 символов\",\n\
+  \"description\": \"короткое описание для карточки персонажа, 1-2 предложения, до 300 символов\",\n\
+  \"internal_prompt\": \"развёрнутый системный промпт: личность, манера речи, предыстория и правила поведения, 3-6 предложений\",\n\
+  \"language\": \"ru или en — язык общения персонажа (определи по языку затравки, если затравка пустая — используй en)\",\n\
+  \"violence_level\": \"mild, medium или graphic — насколько тёмная/интенсивная история подразумевается\"\n\
+}\n\
+Пиши description и internal_prompt на том же языке, что указан в поле language.";
+
+/// Генерирует черновик персонажа (имя, описание, промпт, язык, интенсивность) по короткой затравке пользователя
+pub async fn generate_character_idea(
+    client: &Client,
+    token_manager: &TokenManager,
+    hint: &str,
+) -> Result<CharacterIdeaResult, Box<dyn std::error::Error>> {
+    let _guard = token_manager.acquire_token().ok_or("Все токены сейчас заняты.")?;
+
+    let user_content = if hint.trim().is_empty() {
+        "Придумай полностью случайного персонажа.".to_string()
+    } else {
+        format!("Затравка от пользователя: {}", hint.trim())
+    };
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: CHARACTER_IDEA_SYSTEM_PROMPT.to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: user_content,
+        },
+    ];
+
+    let request_payload = OllamaRequest {
+        model: "gemma4:cloud".to_string(),
+        messages,
+        stream: false,
+    };
+
+    let response = client
+        .post("https://ollama.com/api/chat")
+        .header("Authorization", format!("Bearer {}", _guard.token))
+        .header("Content-Type", "application/json")
+        .json(&request_payload)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await?;
+        return Err(format!("Ollama API ошибка (генерация персонажа): {}", err_text).into());
+    }
+
+    let ollama_response: OllamaResponse = response.json().await?;
+    let raw = ollama_response.message.content;
+    let tokens = (ollama_response.prompt_eval_count + ollama_response.eval_count) as i64;
+
+    let character = parse_character_json(&raw)
+        .ok_or_else(|| format!("Не удалось разобрать ответ ИИ как JSON персонажа: {}", raw))?;
+
+    Ok(CharacterIdeaResult {
+        character,
+        usage: vec![TokenUsage {
+            alias: _guard.alias.clone(),
+            tokens,
+        }],
+    })
+}
+
+/// ИИ иногда оборачивает JSON в ```json ... ``` или добавляет текст вокруг — вырезаем сам объект
+fn parse_character_json(raw: &str) -> Option<GeneratedCharacter> {
+    let start = raw.find('{')?;
+    let end = raw.rfind('}')?;
+    if end < start {
+        return None;
+    }
+    serde_json::from_str::<GeneratedCharacter>(&raw[start..=end]).ok()
+}
     client: &Client,
     token_manager: &TokenManager,
     user_input: &str,
