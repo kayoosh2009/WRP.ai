@@ -156,53 +156,233 @@
             const form = document.getElementById('newCharacterForm');
             const submitBtn = document.getElementById('submitBtn');
             const errorEl = document.getElementById('formError');
-            const fileInput = document.getElementById('avatar_file');
-            const preview = document.getElementById('avatarPreview');
             const languageSelect = document.getElementById('language');
             const languageOtherInput = document.getElementById('languageOther');
+
+            const nameInput = document.getElementById('name');
+            const descriptionInput = document.getElementById('description');
+            const internalPromptInput = document.getElementById('internal_prompt');
+            const violenceSelect = document.getElementById('violence_level');
+
+            // --- Avatar dropzone ---
+            const fileInput = document.getElementById('avatar_file');
+            const dropzone = document.getElementById('avatarDropzone');
+            const dropzoneEmpty = document.getElementById('avatarDropzoneEmpty');
+            const preview = document.getElementById('avatarPreview');
 
             const MAX_AVATAR_BYTES = 500 * 1024;
             let avatarBase64 = '';
 
-            fileInput.addEventListener('change', () => {
-                const file = fileInput.files[0];
-                if (!file) {
-                    avatarBase64 = '';
-                    preview.hidden = true;
+            function handleAvatarFile(file) {
+                if (!file) return;
+                if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+                    showFormError('Please choose a PNG, JPG or WEBP image.');
                     return;
                 }
                 if (file.size > MAX_AVATAR_BYTES) {
-                    errorEl.textContent = 'Image is too large. Please choose a file under 500 KB.';
-                    errorEl.hidden = false;
-                    fileInput.value = '';
-                    avatarBase64 = '';
-                    preview.hidden = true;
+                    showFormError('Image is too large. Please choose a file under 500 KB.');
                     return;
                 }
-                errorEl.hidden = true;
+                hideFormError();
                 const reader = new FileReader();
                 reader.onload = () => {
                     avatarBase64 = reader.result; // data:image/...;base64,...
                     preview.src = avatarBase64;
                     preview.hidden = false;
+                    dropzoneEmpty.hidden = true;
+                    updatePreviewCard();
                 };
                 reader.readAsDataURL(file);
+            }
+
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', () => {
+                handleAvatarFile(fileInput.files[0]);
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleAvatarFile(file);
+                }
             });
 
             languageSelect.addEventListener('change', () => {
                 languageOtherInput.hidden = languageSelect.value !== 'other';
             });
 
+            // --- Character counters ---
+            const descCounter = document.getElementById('descCounter');
+            const promptCounter = document.getElementById('promptCounter');
+
+            function updateCounter(input, counterEl) {
+                const max = parseInt(input.getAttribute('maxlength'), 10);
+                const len = input.value.length;
+                counterEl.textContent = `${len}/${max}`;
+                counterEl.classList.toggle('char-counter-limit', len >= max);
+            }
+
+            descriptionInput.addEventListener('input', () => {
+                updateCounter(descriptionInput, descCounter);
+                updatePreviewCard();
+            });
+            internalPromptInput.addEventListener('input', () => updateCounter(internalPromptInput, promptCounter));
+            updateCounter(descriptionInput, descCounter);
+            updateCounter(internalPromptInput, promptCounter);
+
+            // --- Live preview card ---
+            const previewName = document.getElementById('previewName');
+            const previewDesc = document.getElementById('previewDesc');
+            const previewImage = document.getElementById('previewImage');
+
+            function updatePreviewCard() {
+                previewName.textContent = nameInput.value.trim() || "Your character's name";
+                previewDesc.textContent = descriptionInput.value.trim() || 'A short description will appear here as you type.';
+                previewImage.style.backgroundImage = avatarBase64 ? `url(${avatarBase64})` : 'none';
+            }
+
+            nameInput.addEventListener('input', updatePreviewCard);
+
+            // --- Form errors ---
+            function showFormError(text) {
+                errorEl.textContent = text;
+                errorEl.hidden = false;
+            }
+            function hideFormError() {
+                errorEl.hidden = true;
+            }
+
+            // --- AI generation modal ---
+            const generateAiBtn = document.getElementById('generateAiBtn');
+            const regenBtn = document.getElementById('regenBtn');
+            const aiModalOverlay = document.getElementById('aiModalOverlay');
+            const aiModalClose = document.getElementById('aiModalClose');
+            const aiModalCancelBtn = document.getElementById('aiModalCancelBtn');
+            const aiHintInput = document.getElementById('aiHintInput');
+            const aiModalError = document.getElementById('aiModalError');
+            const aiGenerateSubmitBtn = document.getElementById('aiGenerateSubmitBtn');
+
+            let lastHint = '';
+
+            function openAiModal() {
+                aiModalError.hidden = true;
+                aiModalOverlay.classList.add('active');
+                aiHintInput.focus();
+            }
+
+            function closeAiModal() {
+                aiModalOverlay.classList.remove('active');
+            }
+
+            generateAiBtn.addEventListener('click', openAiModal);
+            aiModalClose.addEventListener('click', closeAiModal);
+            aiModalCancelBtn.addEventListener('click', closeAiModal);
+            aiModalOverlay.addEventListener('click', (e) => {
+                if (e.target === aiModalOverlay) closeAiModal();
+            });
+
+            function applyGeneratedCharacter(character) {
+                nameInput.value = character.name || '';
+                descriptionInput.value = character.description || '';
+                internalPromptInput.value = character.internal_prompt || '';
+
+                if (character.language === 'ru' || character.language === 'en') {
+                    languageSelect.value = character.language;
+                    languageOtherInput.hidden = true;
+                } else if (character.language) {
+                    languageSelect.value = 'other';
+                    languageOtherInput.hidden = false;
+                    languageOtherInput.value = character.language;
+                }
+
+                if (['mild', 'medium', 'graphic'].includes(character.violence_level)) {
+                    violenceSelect.value = character.violence_level;
+                }
+
+                updateCounter(descriptionInput, descCounter);
+                updateCounter(internalPromptInput, promptCounter);
+                updatePreviewCard();
+                regenBtn.hidden = false;
+            }
+
+            async function runGeneration(hint, triggerBtn) {
+                const originalText = triggerBtn.textContent;
+                triggerBtn.disabled = true;
+                generateAiBtn.disabled = true;
+                regenBtn.disabled = true;
+
+                try {
+                    const response = await authFetch('/api/characters/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ hint }),
+                    });
+
+                    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                    const character = await response.json();
+                    lastHint = hint;
+                    applyGeneratedCharacter(character);
+                    return true;
+                } catch (err) {
+                    console.error('Error generating character:', err);
+                    return false;
+                } finally {
+                    triggerBtn.disabled = false;
+                    triggerBtn.textContent = originalText;
+                    generateAiBtn.disabled = false;
+                    regenBtn.disabled = false;
+                }
+            }
+
+            aiGenerateSubmitBtn.addEventListener('click', async () => {
+                aiModalError.hidden = true;
+                aiGenerateSubmitBtn.textContent = 'Generating...';
+                const hint = aiHintInput.value.trim();
+                const ok = await runGeneration(hint, aiGenerateSubmitBtn);
+                aiGenerateSubmitBtn.textContent = 'Generate';
+                if (ok) {
+                    closeAiModal();
+                } else {
+                    aiModalError.textContent = 'Failed to generate a character. Please try again.';
+                    aiModalError.hidden = false;
+                }
+            });
+
+            regenBtn.addEventListener('click', async () => {
+                const originalHtml = regenBtn.innerHTML;
+                regenBtn.textContent = 'Regenerating...';
+                const ok = await runGeneration(lastHint, regenBtn);
+                if (!ok) {
+                    showFormError('Failed to regenerate. Please try again.');
+                } else {
+                    regenBtn.innerHTML = originalHtml;
+                }
+            });
+
+            // --- Submit ---
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                errorEl.hidden = true;
+                hideFormError();
 
                 let language = languageSelect.value;
                 if (language === 'other') {
                     language = languageOtherInput.value.trim();
                     if (!language) {
-                        errorEl.textContent = 'Please specify the language.';
-                        errorEl.hidden = false;
+                        showFormError('Please specify the language.');
                         return;
                     }
                 }
@@ -211,12 +391,12 @@
                 submitBtn.textContent = 'Creating...';
 
                 const payload = {
-                    name: document.getElementById('name').value.trim(),
+                    name: nameInput.value.trim(),
                     avatar_url: avatarBase64,
-                    description: document.getElementById('description').value.trim(),
-                    internal_prompt: document.getElementById('internal_prompt').value.trim(),
+                    description: descriptionInput.value.trim(),
+                    internal_prompt: internalPromptInput.value.trim(),
                     language: language,
-                    violence_level: document.getElementById('violence_level').value,
+                    violence_level: violenceSelect.value,
                 };
 
                 try {
@@ -232,12 +412,13 @@
                     window.location.href = `/chat.html?id=${character.id}`;
                 } catch (err) {
                     console.error('Error creating character:', err);
-                    errorEl.textContent = 'Failed to create character. Please try again.';
-                    errorEl.hidden = false;
+                    showFormError('Failed to create character. Please try again.');
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Create character';
                 }
             });
+
+            updatePreviewCard();
         }
     </script>
 </body>
