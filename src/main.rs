@@ -47,6 +47,7 @@ async fn main() {
     // Роуты, требующие авторизации через Firebase ID-токен
     let protected_routes = Router::new()
         .route("/api/characters", post(create_character_handler))
+        .route("/api/characters/generate", post(generate_character_handler))
         .route("/api/chat/:char_id", get(get_chat_history_handler).post(send_chat_message_handler).delete(delete_chat_history_handler))
         .route("/api/me", get(get_me_handler))
         .route("/api/comments", post(add_comment_handler))
