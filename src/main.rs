@@ -160,6 +160,19 @@ async fn get_characters_handler(
     }
 }
 
+// GET /api/stats — публичная статистика для блока "Наши достижения" на главной
+async fn get_site_stats_handler(
+    State(state): State<AppState>,
+) -> Result<Json<model::SiteStats>, axum::http::StatusCode> {
+    match state.db.get_site_stats().await {
+        Ok(stats) => Ok(Json(stats)),
+        Err(e) => {
+            eprintln!("❌ Ошибка при получении статистики сайта: {}", e);
+            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
 // GET /api/characters/:char_id — детали одного персонажа
 async fn get_character_handler(
     State(state): State<AppState>,
