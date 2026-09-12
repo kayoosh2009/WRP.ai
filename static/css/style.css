@@ -1724,13 +1724,13 @@ body {
 }
 
 .chats-card {
+    aspect-ratio: 3 / 4;
     background-color: #1e1a1d;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    min-height: 260px; /* примерно равно высоте обычной карточки с картинкой+инфо */
     gap: 12px;
 }
 
