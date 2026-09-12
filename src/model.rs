@@ -82,3 +82,11 @@ pub struct ChatSummary {
     pub last_role: String,   // "user" | "assistant" — чтобы фронт мог показать "You: ..." или просто текст
     pub last_timestamp: i64,
 }
+
+/// Общая статистика сайта для блока "Наши достижения" на главной
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SiteStats {
+    pub characters_created: u64,
+    pub accounts_created: u64,
+    pub messages_sent: u64,
+}
