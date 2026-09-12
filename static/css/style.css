@@ -2499,3 +2499,88 @@ body {
         padding: 22px 18px;
     }
 }
+
+/* --- Achievements banner (index.html) --- */
+.stats-banner {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    background: linear-gradient(135deg, var(--card-bg), #201c22);
+    border-radius: 16px;
+    padding: 40px 260px 40px 40px;
+    margin: 40px 0;
+    overflow: visible; /* чтобы персонаж мог "вылезать" за верхний край */
+}
+
+.stats-title {
+    font-size: 1.4rem;
+    margin-bottom: 24px;
+}
+
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-number {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: var(--text-light);
+    line-height: 1;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.stats-character {
+    position: absolute;
+    right: 30px;
+    bottom: 0;
+    width: 220px;
+    pointer-events: none;
+}
+
+.stats-character-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transform: translateY(-34px); /* макушка выходит за верхний край рамки */
+}
+
+@media (max-width: 860px) {
+    .stats-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 32px 24px;
+    }
+
+    .stats-character {
+        display: none;
+    }
+
+    .stats-row {
+        gap: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-number {
+        font-size: 1.8rem;
+    }
+
+    .stats-row {
+        gap: 20px;
+    }
+}
