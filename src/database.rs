@@ -1081,25 +1081,19 @@ impl FirestoreDb {
     pub async fn get_site_stats(&self) -> Result<crate::model::SiteStats, Box<dyn std::error::Error>> {
         let characters = self.get_all_characters().await.unwrap_or_default();
         let characters_created = characters.len() as u64;
+        // messages_sent берём из публично читаемого message_count каждого персонажа —
+        // не нужно лезть в закрытую коллекцию /users
+        let messages_sent: u64 = characters.iter().map(|c| c.message_count).sum();
 
-        let url = format!("{}/users?key={}", self.base_url(), self.api_key);
-        let response = self.client.get(&url).send().await?;
-
-        let (accounts_created, messages_sent) = if response.status().is_success() {
-            let list_response: FirestoreListResponse = response.json().await?;
-            println!("🔍 [stats] Документов в /users: {}", list_response.documents.len());
-            let accounts = list_response.documents.len() as u64;
-            let messages: u64 = list_response
-                .documents
-                .iter()
-                .map(|doc| get_integer_field(&doc.fields, "messages_sent").unwrap_or(0) as u64)
-                .sum();
-            (accounts, messages)
-        } else {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            eprintln!("⚠️ [stats] Не удалось получить /users: {} — {}", status, body);
-            (0, 0)
+        let url = format!("{}/site_stats/global?key={}", self.base_url(), self.api_key);
+        let accounts_created = match self.client.get(&url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                match resp.json::<FirestoreDocument>().await {
+                    Ok(doc) => get_integer_field(&doc.fields, "accounts_created").unwrap_or(0) as u64,
+                    Err(_) => 0,
+                }
+            }
+            _ => 0, // документа ещё нет — значит ни одного сообщения ещё не отправляли
         };
 
         Ok(crate::model::SiteStats {
