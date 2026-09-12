@@ -607,11 +607,11 @@
             function tick(now) {
                 const progress = Math.min((now - start) / duration, 1);
                 const eased = 1 - Math.pow(1 - progress, 3); // ease-out
-                el.textContent = Math.floor(eased * target).toLocaleString('ru-RU');
+                el.textContent = Math.floor(eased * target).toLocaleString('en-US');
                 if (progress < 1) {
                     requestAnimationFrame(tick);
                 } else {
-                    el.textContent = target.toLocaleString('ru-RU');
+                    el.textContent = target.toLocaleString('en-US');
                 }
             }
 
