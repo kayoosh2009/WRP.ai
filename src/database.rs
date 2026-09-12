@@ -1034,6 +1034,7 @@ impl FirestoreDb {
 
         let (accounts_created, messages_sent) = if response.status().is_success() {
             let list_response: FirestoreListResponse = response.json().await?;
+            println!("🔍 [stats] Документов в /users: {}", list_response.documents.len());
             let accounts = list_response.documents.len() as u64;
             let messages: u64 = list_response
                 .documents
@@ -1042,6 +1043,9 @@ impl FirestoreDb {
                 .sum();
             (accounts, messages)
         } else {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            eprintln!("⚠️ [stats] Не удалось получить /users: {} — {}", status, body);
             (0, 0)
         };
 
