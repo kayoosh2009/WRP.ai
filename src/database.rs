@@ -625,8 +625,16 @@ impl FirestoreDb {
         }
     }
 
+    /// true, если Firestore-документ пользователя уже существует (не первое его сообщение)
+    async fn user_doc_exists(&self, uid: &str) -> bool {
+        let url = format!("{}/users/{}?key={}", self.base_url(), uid, self.api_key);
+        matches!(self.client.get(&url).send().await, Ok(resp) if resp.status().is_success())
+    }
+
     /// Увеличить счётчик отправленных пользователем сообщений на 1
     pub async fn increment_user_message_count(&self, id_token: &str, uid: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let is_new_user = !self.user_doc_exists(uid).await;
+
         let current = self.get_user_message_count(uid).await;
         let new_count = current + 1;
 
@@ -653,6 +661,51 @@ impl FirestoreDb {
         if !response.status().is_success() {
             let err_text = response.text().await?;
             return Err(format!("Firestore PATCH USER STATS error: {}", err_text).into());
+        }
+
+        // Первое сообщение этого пользователя вообще — считаем его в глобальную статистику аккаунтов
+        if is_new_user {
+            if let Err(e) = self.increment_global_counter(id_token, "accounts_created").await {
+                eprintln!("⚠️ Не удалось увеличить счётчик аккаунтов: {}", e);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Увеличить на 1 именованное поле в публичном документе site_stats/global (best-effort счётчик)
+    async fn increment_global_counter(&self, id_token: &str, field: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let get_url = format!("{}/site_stats/global?key={}", self.base_url(), self.api_key);
+        let current = match self.client.get(&get_url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                let doc: FirestoreDocument = resp.json().await?;
+                get_integer_field(&doc.fields, field).unwrap_or(0)
+            }
+            _ => 0,
+        };
+        let new_value = current + 1;
+
+        let patch_url = format!(
+            "{}/site_stats/global?key={}&updateMask.fieldPaths={}",
+            self.base_url(),
+            self.api_key,
+            field
+        );
+
+        let body = serde_json::json!({
+            "fields": { field: { "integerValue": new_value.to_string() } }
+        });
+
+        let response = self.client
+            .patch(&patch_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let err_text = response.text().await?;
+            return Err(format!("Firestore INCREMENT COUNTER error: {}", err_text).into());
         }
 
         Ok(())
