@@ -986,10 +986,33 @@ impl FirestoreDb {
         Ok(())
     }
 
-    /// Получить статистику по всем ключам ("серверам"): сколько потрачено всего
-    /// и сколько за текущий месяц. Отсортировано по убыванию total_all_time
-    /// (первый в списке — самый нагруженный ключ).
-    pub async fn get_token_usage_stats(&self, id_token: &str) -> Result<Vec<TokenUsageStat>, Box<dyn std::error::Error>> {
+    /// Общая статистика сайта: сколько всего персонажей, аккаунтов и отправленных сообщений
+    pub async fn get_site_stats(&self) -> Result<crate::model::SiteStats, Box<dyn std::error::Error>> {
+        let characters = self.get_all_characters().await.unwrap_or_default();
+        let characters_created = characters.len() as u64;
+
+        let url = format!("{}/users?key={}", self.base_url(), self.api_key);
+        let response = self.client.get(&url).send().await?;
+
+        let (accounts_created, messages_sent) = if response.status().is_success() {
+            let list_response: FirestoreListResponse = response.json().await?;
+            let accounts = list_response.documents.len() as u64;
+            let messages: u64 = list_response
+                .documents
+                .iter()
+                .map(|doc| get_integer_field(&doc.fields, "messages_sent").unwrap_or(0) as u64)
+                .sum();
+            (accounts, messages)
+        } else {
+            (0, 0)
+        };
+
+        Ok(crate::model::SiteStats {
+            characters_created,
+            accounts_created,
+            messages_sent,
+        })
+    }
         let url = format!("{}/token_usage?key={}", self.base_url(), self.api_key);
 
         let response = self.client
