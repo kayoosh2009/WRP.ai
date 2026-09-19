@@ -91,6 +91,56 @@ impl FirestoreDb {
         )
     }
 
+    /// Забирает ВСЕ документы коллекции, проходя по страницам (nextPageToken).
+    /// collection_path — путь относительно .../documents,
+    /// например "characters" или "characters/ID/chats/UID/messages".
+    /// 404 считаем как "коллекции ещё нет" → пустой список.
+    async fn list_all_documents(
+        &self,
+        collection_path: &str,
+        id_token: Option<&str>,
+    ) -> Result<Vec<FirestoreDocument>, Box<dyn std::error::Error>> {
+        let mut all_docs: Vec<FirestoreDocument> = Vec::new();
+        let mut page_token: Option<String> = None;
+
+        loop {
+            let mut url = reqwest::Url::parse(&format!("{}/{}", self.base_url(), collection_path))?;
+            {
+                let mut q = url.query_pairs_mut();
+                q.append_pair("key", &self.api_key);
+                q.append_pair("pageSize", "300");
+                if let Some(t) = &page_token {
+                    q.append_pair("pageToken", t);
+                }
+            }
+
+            let mut request = self.client.get(url);
+            if let Some(t) = id_token {
+                request = request.header("Authorization", format!("Bearer {}", t));
+            }
+
+            let response = request.send().await?;
+
+            if !response.status().is_success() {
+                if response.status().as_u16() == 404 {
+                    return Ok(all_docs);
+                }
+                let err_text = response.text().await?;
+                return Err(format!("Firestore LIST error ({}): {}", collection_path, err_text).into());
+            }
+
+            let page: FirestoreListResponse = response.json().await?;
+            all_docs.extend(page.documents);
+
+            match page.next_page_token {
+                Some(t) if !t.is_empty() => page_token = Some(t),
+                _ => break,
+            }
+        }
+
+        Ok(all_docs)
+    }
+
     fn parse_character(&self, char_id: &str, doc: FirestoreDocument) -> Result<RpCharacter, String> {
         Ok(RpCharacter {
             id: char_id.to_string(),
