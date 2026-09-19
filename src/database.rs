@@ -17,6 +17,8 @@ pub struct FirestoreDb {
 struct FirestoreListResponse {
     #[serde(default)]
     documents: Vec<FirestoreDocument>,
+    #[serde(default, rename = "nextPageToken")]
+    next_page_token: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
