@@ -552,31 +552,10 @@ impl FirestoreDb {
         char_id: &str,
         uid: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let url = format!(
-            "{}/characters/{}/chats/{}/messages?key={}",
-            self.base_url(),
-            char_id,
-            uid,
-            self.api_key
-        );
+        let collection_path = format!("characters/{}/chats/{}/messages", char_id, uid);
+        let docs = self.list_all_documents(&collection_path, Some(id_token)).await?;
 
-        let response = self.client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            if response.status().as_u16() == 404 {
-                return Ok(());
-            }
-            let err_text = response.text().await?;
-            return Err(format!("Firestore LIST FOR DELETE error: {}", err_text).into());
-        }
-
-        let list_response: FirestoreListResponse = response.json().await?;
-
-        for doc in &list_response.documents {
+        for doc in &docs {
             let delete_url = format!(
                 "https://firestore.googleapis.com/v1/{}?key={}",
                 doc.name,
