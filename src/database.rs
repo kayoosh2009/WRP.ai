@@ -500,27 +500,17 @@ impl FirestoreDb {
         let mut summaries = Vec::new();
 
         for character in characters {
-            let url = format!(
-                "{}/characters/{}/chats/{}/messages?key={}",
-                self.base_url(),
-                character.id,
-                uid,
-                self.api_key
-            );
+            let collection_path = format!("characters/{}/chats/{}/messages", character.id, uid);
+            let docs = match self.list_all_documents(&collection_path, Some(id_token)).await {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("⚠️ [DB] Не удалось загрузить чат с {}: {}", character.id, e);
+                    continue; // пропускаем этого персонажа, остальные чаты грузим дальше
+                }
+            };
 
-            let response = self.client
-                .get(&url)
-                .header("Authorization", format!("Bearer {}", id_token))
-                .send()
-                .await?;
-
-            if !response.status().is_success() {
-                continue; // нет чата с этим персонажем — пропускаем
-            }
-
-            let list_response: FirestoreListResponse = response.json().await?;
             let mut messages: Vec<(i64, Message)> = Vec::new();
-            for doc in &list_response.documents {
+            for doc in &docs {
                 if let Ok(parsed) = self.parse_message(doc) {
                     messages.push(parsed);
                 }
