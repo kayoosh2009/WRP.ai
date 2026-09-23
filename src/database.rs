@@ -634,7 +634,7 @@ impl FirestoreDb {
 
     /// Увеличить счётчик отправленных пользователем сообщений на 1
     pub async fn increment_user_message_count(&self, id_token: &str, uid: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let is_new_user = !self.user_doc_exists(uid).await;
+        let is_new_user = !self.user_doc_exists(id_token, uid).await;
 
         let current = self.get_user_message_count(uid).await;
         let new_count = current + 1;
