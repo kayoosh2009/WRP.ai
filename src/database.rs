@@ -621,9 +621,15 @@ impl FirestoreDb {
     }
 
     /// true, если Firestore-документ пользователя уже существует (не первое его сообщение)
-    async fn user_doc_exists(&self, uid: &str) -> bool {
+    async fn user_doc_exists(&self, id_token: &str, uid: &str) -> bool {
         let url = format!("{}/users/{}?key={}", self.base_url(), uid, self.api_key);
-        matches!(self.client.get(&url).send().await, Ok(resp) if resp.status().is_success())
+        matches!(
+            self.client.get(&url)
+                .header("Authorization", format!("Bearer {}", id_token))
+                .send()
+                .await,
+            Ok(resp) if resp.status().is_success()
+        )
     }
 
     /// Увеличить счётчик отправленных пользователем сообщений на 1
