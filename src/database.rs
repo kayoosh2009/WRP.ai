@@ -993,7 +993,11 @@ impl FirestoreDb {
 
         // 1. Читаем текущие значения (если документа ещё нет — считаем их нулями)
         let get_url = format!("{}/token_usage/{}?key={}", self.base_url(), doc_id, self.api_key);
-        let existing_fields = match self.client.get(&get_url).send().await {
+        let existing_fields = match self.client.get(&get_url)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+        {
             Ok(resp) if resp.status().is_success() => {
                 resp.json::<FirestoreDocument>().await.ok().map(|d| d.fields)
             }
